@@ -1,6 +1,10 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 
 interface S3UploadParams {
   buffer: Buffer;
@@ -19,7 +23,9 @@ export class S3Service {
       region: this.configService.getOrThrow<string>('AWS_REGION'),
       credentials: {
         accessKeyId: this.configService.getOrThrow<string>('AWS_ACCESS_KEY_ID'),
-        secretAccessKey: this.configService.getOrThrow<string>('AWS_SECRET_ACCESS_KEY'),
+        secretAccessKey: this.configService.getOrThrow<string>(
+          'AWS_SECRET_ACCESS_KEY',
+        ),
       },
       // ローカル開発時のみLocalStackへ向ける。本番では未設定にしてAWSデフォルトエンドポイントを使用する
       ...(endpoint ? { endpoint, forcePathStyle: true } : {}),
@@ -38,7 +44,31 @@ export class S3Service {
         }),
       );
     } catch (error) {
-      throw new InternalServerErrorException(`S3へのアップロードに失敗しました: ${String(error)}`);
+      throw new InternalServerErrorException(
+        `S3へのアップロードに失敗しました: ${String(error)}`,
+      );
+    }
+  }
+
+  async getObject(s3Key: string): Promise<Buffer> {
+    try {
+      const response = await this.client.send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: s3Key }),
+      );
+      const stream = response.Body;
+      if (!stream) {
+        throw new InternalServerErrorException('S3からの応答ボディが空です');
+      }
+      // ReadableStream → Buffer に変換
+      const chunks: Uint8Array[] = [];
+      for await (const chunk of stream as AsyncIterable<Uint8Array>) {
+        chunks.push(chunk);
+      }
+      return Buffer.concat(chunks);
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `S3からの取得に失敗しました: ${String(error)}`,
+      );
     }
   }
 }

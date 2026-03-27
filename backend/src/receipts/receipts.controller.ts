@@ -1,8 +1,11 @@
 import {
   Controller,
   FileTypeValidator,
+  Get,
   MaxFileSizeValidator,
+  Param,
   ParseFilePipe,
+  ParseUUIDPipe,
   Post,
   UploadedFile,
   UseGuards,
@@ -13,6 +16,7 @@ import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
+import { GetReceiptResponseDto } from './dto/get-receipt.response.dto';
 import { UploadReceiptResponseDto } from './dto/upload-receipt.response.dto';
 import { ReceiptsService } from './receipts.service';
 
@@ -50,6 +54,34 @@ export class ReceiptsController {
       originalFileName: receipt.originalFileName,
       status: receipt.status,
       createdAt: receipt.createdAt,
+    };
+  }
+
+  @Get(':id')
+  async getReceipt(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<GetReceiptResponseDto> {
+    const receipt = await this.receiptsService.getReceipt(id, user.id);
+
+    return {
+      id: receipt.id,
+      status: receipt.status,
+      originalFileName: receipt.originalFileName,
+      storeName: receipt.storeName,
+      purchasedAt: receipt.purchasedAt,
+      total: receipt.total,
+      currency: receipt.currency,
+      items: (receipt.items ?? []).map((item) => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        totalPrice: Number(item.totalPrice),
+        category: item.category,
+      })),
+      createdAt: receipt.createdAt,
+      updatedAt: receipt.updatedAt,
     };
   }
 }
