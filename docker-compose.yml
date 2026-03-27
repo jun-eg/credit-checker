@@ -15,5 +15,23 @@ services:
       timeout: 5s
       retries: 5
 
+  localstack:
+    image: localstack/localstack:3
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3
+      DEFAULT_REGION: ${AWS_REGION:-ap-northeast-1}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-credit-checker-receipts}
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - ./localstack/init-s3.sh:/etc/localstack/init/ready.d/init-s3.sh
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/health | grep '\"s3\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres_data:
+  localstack_data:
