@@ -42,13 +42,13 @@ export class Receipt {
   @Column({ name: 'purchased_at', type: 'timestamptz', nullable: true })
   purchasedAt: Date | null;
 
-  @Column({ name: 'store_name', nullable: true })
+  @Column({ name: 'store_name', type: 'varchar', nullable: true })
   storeName: string | null;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   total: number | null;
 
-  @Column({ length: 3, nullable: true })
+  @Column({ type: 'varchar', length: 3, nullable: true })
   currency: string | null;
 
   @Column({ name: 'gpt_response', type: 'jsonb', nullable: true })

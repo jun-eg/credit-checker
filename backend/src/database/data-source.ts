@@ -9,7 +9,7 @@ export const AppDataSource = new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
   entities: [User, Receipt, ReceiptItem, ChatSession, ChatMessage],
-  migrations: ['src/migrations/*.ts'],
+  migrations: ['dist/migrations/*.js'],
   synchronize: false,
   logging: process.env.NODE_ENV === 'development',
 });

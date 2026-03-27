@@ -14,5 +14,8 @@
   },
   "devDependencies": {
     "prettier": "^3.5.3"
+  },
+  "dependencies": {
+    "@nestjs/platform-express": "^11.1.17"
   }
 }
