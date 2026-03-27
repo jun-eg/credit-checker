@@ -76,7 +76,9 @@ export class InitialSchema1743073200000 implements MigrationInterface {
       )
     `);
 
-    await queryRunner.query(`CREATE INDEX "idx_receipts_user_id" ON "receipts"("user_id")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_receipts_user_id" ON "receipts"("user_id")`,
+    );
     await queryRunner.query(
       `CREATE INDEX "idx_receipt_items_receipt_id" ON "receipt_items"("receipt_id")`,
     );

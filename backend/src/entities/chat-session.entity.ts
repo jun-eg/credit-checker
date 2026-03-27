@@ -32,6 +32,8 @@ export class ChatSession {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @OneToMany(() => ChatMessage, (message: ChatMessage) => message.session, { cascade: true })
+  @OneToMany(() => ChatMessage, (message: ChatMessage) => message.session, {
+    cascade: true,
+  })
   messages: ChatMessage[];
 }

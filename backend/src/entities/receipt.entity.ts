@@ -64,6 +64,8 @@ export class Receipt {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @OneToMany(() => ReceiptItem, (item: ReceiptItem) => item.receipt, { cascade: true })
+  @OneToMany(() => ReceiptItem, (item: ReceiptItem) => item.receipt, {
+    cascade: true,
+  })
   items: ReceiptItem[];
 }
