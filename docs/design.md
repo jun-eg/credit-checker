@@ -15,15 +15,15 @@
 
 ## 2. 技術スタック
 
-| 領域 | 技術 |
-|------|------|
-| フロントエンド | Next.js (App Router) |
-| バックエンド | NestJS |
-| データベース | PostgreSQL |
-| 画像ストレージ | AWS S3 |
-| 認証 | NextAuth.js（Google OAuth） |
-| LLM | OpenAI GPT-4o |
-| デプロイ | AWS |
+| 領域           | 技術                        |
+| -------------- | --------------------------- |
+| フロントエンド | Next.js (App Router)        |
+| バックエンド   | NestJS                      |
+| データベース   | PostgreSQL                  |
+| 画像ストレージ | AWS S3                      |
+| 認証           | NextAuth.js（Google OAuth） |
+| LLM            | OpenAI GPT-4o               |
+| デプロイ       | AWS                         |
 
 ---
 
@@ -47,6 +47,7 @@
 ## 4. データベーススキーマ
 
 ### users
+
 NextAuth.js の標準テーブル構成に準拠。
 
 ```sql
@@ -60,6 +61,7 @@ CREATE TABLE users (
 ```
 
 ### receipts
+
 ```sql
 CREATE TABLE receipts (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -74,6 +76,7 @@ CREATE TABLE receipts (
 ```
 
 ### receipt_items
+
 ```sql
 CREATE TABLE receipt_items (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -85,6 +88,7 @@ CREATE TABLE receipt_items (
 ```
 
 ### chat_sessions
+
 ```sql
 CREATE TABLE chat_sessions (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -94,6 +98,7 @@ CREATE TABLE chat_sessions (
 ```
 
 ### chat_messages
+
 ```sql
 CREATE TABLE chat_messages (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -163,12 +168,12 @@ CREATE TABLE chat_messages (
 
 ### Tool Calling 関数一覧
 
-| 関数名 | 引数 | 内容 |
-|--------|------|------|
-| `get_total_spending` | `from: Date, to: Date` | 期間内の合計金額 |
-| `get_spending_by_category` | `from: Date, to: Date` | カテゴリ別の合計金額 |
-| `get_receipts` | `from: Date, to: Date, category?: string` | レシート一覧 |
-| `get_monthly_summary` | `year: number, month: number` | 月次サマリー |
+| 関数名                     | 引数                                      | 内容                 |
+| -------------------------- | ----------------------------------------- | -------------------- |
+| `get_total_spending`       | `from: Date, to: Date`                    | 期間内の合計金額     |
+| `get_spending_by_category` | `from: Date, to: Date`                    | カテゴリ別の合計金額 |
+| `get_receipts`             | `from: Date, to: Date, category?: string` | レシート一覧         |
+| `get_monthly_summary`      | `year: number, month: number`             | 月次サマリー         |
 
 ### チャットフロー
 
@@ -191,33 +196,33 @@ CREATE TABLE chat_messages (
 
 ### レシート
 
-| メソッド | パス | 内容 |
-|---------|------|------|
-| POST | `/receipts/upload` | 画像アップロード → GPT解析 → DB保存 |
-| GET | `/receipts` | レシート一覧（クエリ: `from`, `to`, `category`） |
-| GET | `/receipts/:id` | レシート詳細 + 明細 |
-| DELETE | `/receipts/:id` | レシート削除（S3からも削除） |
+| メソッド | パス               | 内容                                             |
+| -------- | ------------------ | ------------------------------------------------ |
+| POST     | `/receipts/upload` | 画像アップロード → GPT解析 → DB保存              |
+| GET      | `/receipts`        | レシート一覧（クエリ: `from`, `to`, `category`） |
+| GET      | `/receipts/:id`    | レシート詳細 + 明細                              |
+| DELETE   | `/receipts/:id`    | レシート削除（S3からも削除）                     |
 
 ### チャット
 
-| メソッド | パス | 内容 |
-|---------|------|------|
-| POST | `/chat/sessions` | チャットセッション新規作成 |
-| GET | `/chat/sessions` | セッション一覧 |
-| GET | `/chat/sessions/:id` | セッション詳細（メッセージ含む） |
-| POST | `/chat/sessions/:id/messages` | メッセージ送信 → LLM応答 |
+| メソッド | パス                          | 内容                             |
+| -------- | ----------------------------- | -------------------------------- |
+| POST     | `/chat/sessions`              | チャットセッション新規作成       |
+| GET      | `/chat/sessions`              | セッション一覧                   |
+| GET      | `/chat/sessions/:id`          | セッション詳細（メッセージ含む） |
+| POST     | `/chat/sessions/:id/messages` | メッセージ送信 → LLM応答         |
 
 ---
 
 ## 9. 画面構成（Next.js）
 
-| パス | 画面 | 内容 |
-|------|------|------|
-| `/` | トップ | ログインボタン |
-| `/dashboard` | ダッシュボード | 当月サマリー・カテゴリ別グラフ |
-| `/receipts` | レシート一覧 | 一覧表示・アップロードボタン |
-| `/receipts/[id]` | レシート詳細 | 画像・明細・編集 |
-| `/chat` | チャット | チャット画面（セッション管理） |
+| パス             | 画面           | 内容                           |
+| ---------------- | -------------- | ------------------------------ |
+| `/`              | トップ         | ログインボタン                 |
+| `/dashboard`     | ダッシュボード | 当月サマリー・カテゴリ別グラフ |
+| `/receipts`      | レシート一覧   | 一覧表示・アップロードボタン   |
+| `/receipts/[id]` | レシート詳細   | 画像・明細・編集               |
+| `/chat`          | チャット       | チャット画面（セッション管理） |
 
 ---
 
@@ -235,12 +240,12 @@ CREATE TABLE chat_messages (
 
 ## 11. AWS構成（案）
 
-| サービス | 用途 |
-|---------|------|
-| ECS (Fargate) | NestJS APIサーバー |
+| サービス         | 用途                   |
+| ---------------- | ---------------------- |
+| ECS (Fargate)    | NestJS APIサーバー     |
 | Amplify / Vercel | Next.js フロントエンド |
-| RDS (PostgreSQL) | データベース |
-| S3 | レシート画像保存 |
-| ALB | ロードバランサー |
-| ACM | SSL証明書 |
-| ECR | Dockerイメージ管理 |
+| RDS (PostgreSQL) | データベース           |
+| S3               | レシート画像保存       |
+| ALB              | ロードバランサー       |
+| ACM              | SSL証明書              |
+| ECR              | Dockerイメージ管理     |
