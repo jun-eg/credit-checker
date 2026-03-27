@@ -28,10 +28,10 @@ export class ChatMessage {
   @Column({ type: 'text' })
   content: string;
 
-  @Column({ name: 'tool_name', nullable: true })
+  @Column({ name: 'tool_name', type: 'varchar', nullable: true })
   toolName: string | null;
 
-  @Column({ name: 'tool_call_id', nullable: true })
+  @Column({ name: 'tool_call_id', type: 'varchar', nullable: true })
   toolCallId: string | null;
 
   @CreateDateColumn({ name: 'created_at' })

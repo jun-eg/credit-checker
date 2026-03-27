@@ -18,8 +18,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "migration:run": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:run -d src/database/data-source.ts",
-    "migration:revert": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:revert -d src/database/data-source.ts",
+    "migration:run": "npm run build && DATABASE_URL=$DATABASE_URL ../node_modules/.bin/typeorm migration:run -d dist/database/data-source.js",
+    "migration:revert": "npm run build && DATABASE_URL=$DATABASE_URL ../node_modules/.bin/typeorm migration:revert -d dist/database/data-source.js",
     "seed": "ts-node -r tsconfig-paths/register src/seeds/seed.ts"
   },
   "dependencies": {

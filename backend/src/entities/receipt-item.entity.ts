@@ -28,7 +28,7 @@ export class ReceiptItem {
   @Column({ name: 'total_price', type: 'decimal', precision: 10, scale: 2 })
   totalPrice: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   category: string | null;
 
   @CreateDateColumn({ name: 'created_at' })

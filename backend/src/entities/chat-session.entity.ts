@@ -19,7 +19,7 @@ export class ChatSession {
   @Column({ name: 'user_id' })
   userId: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   title: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
