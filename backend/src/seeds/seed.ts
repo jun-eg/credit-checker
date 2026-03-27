@@ -36,10 +36,34 @@ async function seed(): Promise<void> {
       total: 1580,
       currency: 'JPY',
       items: [
-        { name: '牛乳', quantity: 1, unitPrice: 198, totalPrice: 198, category: '食料品' },
-        { name: '食パン', quantity: 1, unitPrice: 198, totalPrice: 198, category: '食料品' },
-        { name: '鶏もも肉', quantity: 2, unitPrice: 298, totalPrice: 596, category: '食料品' },
-        { name: 'シャンプー', quantity: 1, unitPrice: 388, totalPrice: 388, category: '日用品' },
+        {
+          name: '牛乳',
+          quantity: 1,
+          unitPrice: 198,
+          totalPrice: 198,
+          category: '食料品',
+        },
+        {
+          name: '食パン',
+          quantity: 1,
+          unitPrice: 198,
+          totalPrice: 198,
+          category: '食料品',
+        },
+        {
+          name: '鶏もも肉',
+          quantity: 2,
+          unitPrice: 298,
+          totalPrice: 596,
+          category: '食料品',
+        },
+        {
+          name: 'シャンプー',
+          quantity: 1,
+          unitPrice: 388,
+          totalPrice: 388,
+          category: '日用品',
+        },
       ],
     },
   });
@@ -96,7 +120,8 @@ async function seed(): Promise<void> {
     {
       sessionId: session.id,
       role: MessageRole.ASSISTANT,
-      content: '今月の食費は合計 ¥992 です（牛乳¥198、食パン¥198、鶏もも肉¥596）。',
+      content:
+        '今月の食費は合計 ¥992 です（牛乳¥198、食パン¥198、鶏もも肉¥596）。',
     },
   ]);
   await messageRepo.save(messages);
