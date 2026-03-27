@@ -31,7 +31,7 @@ export class InitialSchema1743073200000 implements MigrationInterface {
         "store_name"         VARCHAR,
         "total"              DECIMAL(10,2),
         "currency"           CHAR(3),
-        "raw_text"           TEXT,
+        "gpt_response"       JSONB,
         "created_at"         TIMESTAMPTZ NOT NULL DEFAULT now(),
         "updated_at"         TIMESTAMPTZ NOT NULL DEFAULT now()
       )

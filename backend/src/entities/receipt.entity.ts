@@ -51,8 +51,8 @@ export class Receipt {
   @Column({ length: 3, nullable: true })
   currency: string | null;
 
-  @Column({ name: 'raw_text', type: 'text', nullable: true })
-  rawText: string | null;
+  @Column({ name: 'gpt_response', type: 'jsonb', nullable: true })
+  gptResponse: Record<string, unknown> | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
