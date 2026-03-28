@@ -141,6 +141,18 @@ export class OpenAiService {
     throw lastError;
   }
 
+  async chatWithTools(
+    messages: OpenAI.Chat.ChatCompletionMessageParam[],
+    tools: OpenAI.Chat.ChatCompletionTool[],
+  ): Promise<OpenAI.Chat.ChatCompletion> {
+    return this.client.chat.completions.create({
+      model: 'gpt-4o',
+      messages,
+      tools,
+      tool_choice: 'auto',
+    });
+  }
+
   private toResult(
     data: ReceiptOutput,
     rawResponse: Record<string, unknown>,
