@@ -18,6 +18,7 @@ export class GetReceiptResponseDto {
   total: number | null;
   currency: string | null;
   items: ReceiptItemDto[];
+  possibleDuplicateIds: string[] | null;
   createdAt: Date;
   updatedAt: Date;
 }

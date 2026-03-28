@@ -15,10 +15,12 @@ export interface GetReceiptResponse {
   storeName: string | null;
   total: number | null;
   currency: string | null;
+  possibleDuplicateIds: string[] | null;
 }
 
 export interface UpdateReceiptItemRequest {
-  id: string;
+  id?: string;
+  name?: string;
   category?: string | null;
   quantity?: number;
   unitPrice?: number;
@@ -41,6 +43,7 @@ export interface ListReceiptItem {
   purchasedAt: string | null;
   total: number | null;
   currency: string | null;
+  possibleDuplicateIds: string[] | null;
   createdAt: string;
 }
 
@@ -66,6 +69,7 @@ export interface GetReceiptDetailResponse {
   total: number | null;
   currency: string | null;
   items: ReceiptItemDetail[];
+  possibleDuplicateIds: string[] | null;
   createdAt: string;
   updatedAt: string;
 }

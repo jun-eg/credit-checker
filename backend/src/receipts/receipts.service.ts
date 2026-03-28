@@ -85,6 +85,8 @@ export class ReceiptsService {
       receipt.gptResponse = result.rawResponse;
       await this.receiptsRepository.save(receipt);
 
+      await this.detectDuplicates(receipt);
+
       if (result.items.length > 0) {
         const items = result.items.map((item) =>
           this.receiptItemsRepository.create({
@@ -127,7 +129,7 @@ export class ReceiptsService {
       purchasedAt?: string | null;
       total?: number | null;
       currency?: string | null;
-      items?: { id: string; category?: string | null; quantity?: number; unitPrice?: number; totalPrice?: number }[];
+      items?: { id?: string; name?: string; category?: string | null; quantity?: number; unitPrice?: number; totalPrice?: number }[];
     },
   ): Promise<Receipt> {
     const receipt = await this.receiptsRepository.findOneBy({ id: receiptId, userId });
@@ -144,15 +146,39 @@ export class ReceiptsService {
 
     await this.receiptsRepository.save(receipt);
 
-    if (data.items && data.items.length > 0) {
+    if (data.items !== undefined) {
+      const existingItems = await this.receiptItemsRepository.findBy({ receiptId });
+      const incomingIds = new Set(data.items.map((i) => i.id).filter((id): id is string => !!id));
+
+      // idが送られていない既存アイテムを削除
+      const toDelete = existingItems.filter((e) => !incomingIds.has(e.id));
+      if (toDelete.length > 0) {
+        await this.receiptItemsRepository.remove(toDelete);
+      }
+
       for (const itemData of data.items) {
-        const item = await this.receiptItemsRepository.findOneBy({ id: itemData.id, receiptId });
-        if (!item) continue;
-        if (itemData.category !== undefined) item.category = itemData.category;
-        if (itemData.quantity !== undefined) item.quantity = itemData.quantity;
-        if (itemData.unitPrice !== undefined) item.unitPrice = itemData.unitPrice;
-        if (itemData.totalPrice !== undefined) item.totalPrice = itemData.totalPrice;
-        await this.receiptItemsRepository.save(item);
+        if (itemData.id) {
+          // 既存アイテムの更新
+          const item = existingItems.find((e) => e.id === itemData.id);
+          if (!item) continue;
+          if (itemData.name !== undefined) item.name = itemData.name;
+          if (itemData.category !== undefined) item.category = itemData.category;
+          if (itemData.quantity !== undefined) item.quantity = itemData.quantity;
+          if (itemData.unitPrice !== undefined) item.unitPrice = itemData.unitPrice;
+          if (itemData.totalPrice !== undefined) item.totalPrice = itemData.totalPrice;
+          await this.receiptItemsRepository.save(item);
+        } else {
+          // 新規アイテムの作成
+          const newItem = this.receiptItemsRepository.create({
+            receiptId,
+            name: itemData.name ?? '新規商品',
+            category: itemData.category ?? null,
+            quantity: itemData.quantity ?? 1,
+            unitPrice: itemData.unitPrice ?? 0,
+            totalPrice: itemData.totalPrice ?? 0,
+          });
+          await this.receiptItemsRepository.save(newItem);
+        }
       }
     }
 
@@ -165,6 +191,55 @@ export class ReceiptsService {
       throw new NotFoundException(`レシートが見つかりません: ${receiptId}`);
     }
     await this.receiptsRepository.remove(receipt);
+  }
+
+  private async detectDuplicates(receipt: Receipt): Promise<void> {
+    // 日付か合計のどちらも取れていない場合は比較不可
+    if (!receipt.purchasedAt && receipt.total === null) return;
+
+    const qb = this.receiptsRepository
+      .createQueryBuilder('r')
+      .select('r.id', 'id')
+      .where('r.user_id = :userId', { userId: receipt.userId })
+      .andWhere('r.id != :id', { id: receipt.id })
+      .andWhere('r.status = :status', { status: ReceiptStatus.COMPLETED });
+
+    if (receipt.purchasedAt) {
+      qb.andWhere('DATE(r.purchased_at) = DATE(:purchasedAt)', {
+        purchasedAt: receipt.purchasedAt,
+      });
+    }
+
+    if (receipt.total !== null) {
+      qb.andWhere('ABS(r.total - :total) < 1', { total: receipt.total });
+    }
+
+    if (receipt.storeName) {
+      qb.andWhere('LOWER(TRIM(r.store_name)) = LOWER(TRIM(:storeName))', {
+        storeName: receipt.storeName,
+      });
+    }
+
+    const rows = await qb.getRawMany() as { id: string }[];
+    receipt.possibleDuplicateIds = rows.length > 0 ? rows.map((r) => r.id) : null;
+    await this.receiptsRepository.save(receipt);
+  }
+
+  async getReceiptImage(receiptId: string, userId: string): Promise<{ buffer: Buffer; mimeType: string }> {
+    const receipt = await this.receiptsRepository.findOneBy({ id: receiptId, userId });
+    if (!receipt) {
+      throw new NotFoundException(`レシートが見つかりません: ${receiptId}`);
+    }
+
+    const ext = receipt.s3Key.split('.').pop()?.toLowerCase() ?? '';
+    const mimeType =
+      ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+      : ext === 'png' ? 'image/png'
+      : ext === 'webp' ? 'image/webp'
+      : 'application/octet-stream';
+
+    const buffer = await this.s3Service.getObject(receipt.s3Key);
+    return { buffer, mimeType };
   }
 
   async listReceipts(userId: string): Promise<Receipt[]> {

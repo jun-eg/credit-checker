@@ -1,18 +1,21 @@
 'use client';
 
 import { DragEvent, ChangeEvent, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { getReceipt, uploadReceipt } from '../../../lib/api/receipts';
 
 const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 120_000;
 const ACCEPTED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-type FileItemStatus = 'uploading' | 'analyzing' | 'success' | 'analysis-failed';
+type FileItemStatus = 'uploading' | 'analyzing' | 'duplicate-checking' | 'success' | 'duplicate-warning' | 'analysis-failed';
 
 interface FileItem {
   key: string;
   fileName: string;
   status: FileItemStatus;
+  receiptId?: string;
+  duplicateIds?: string[];
 }
 
 type UploadState =
@@ -25,20 +28,20 @@ interface ReceiptUploadCardProps {
   backendToken: string;
 }
 
+const TERMINAL_STATUSES: FileItemStatus[] = ['success', 'duplicate-warning', 'analysis-failed'];
+
 export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
   const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const updateFileStatus = (key: string, status: FileItemStatus) => {
+  const updateFile = (key: string, patch: Partial<Omit<FileItem, 'key'>>) => {
     setUploadState((prev) => {
       if (prev.status !== 'processing') return prev;
       const updated = prev.files.map((f) =>
-        f.key === key ? { ...f, status } : f,
+        f.key === key ? { ...f, ...patch } : f,
       );
-      const allDone = updated.every(
-        (f) => f.status === 'success' || f.status === 'analysis-failed',
-      );
+      const allDone = updated.every((f) => TERMINAL_STATUSES.includes(f.status));
       return allDone
         ? { status: 'done', files: updated }
         : { status: 'processing', files: updated };
@@ -48,24 +51,36 @@ export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
   const processFile = async (file: File, key: string): Promise<void> => {
     try {
       const result = await uploadReceipt(file, backendToken);
-      updateFileStatus(key, 'analyzing');
+      updateFile(key, { status: 'analyzing', receiptId: result.id });
 
       const deadline = Date.now() + POLL_TIMEOUT_MS;
       while (Date.now() < deadline) {
         await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
         const receipt = await getReceipt(result.id, backendToken);
+
         if (receipt.status === 'completed') {
-          updateFileStatus(key, 'success');
+          updateFile(key, { status: 'duplicate-checking' });
+          const hasDuplicates =
+            receipt.possibleDuplicateIds !== null &&
+            receipt.possibleDuplicateIds.length > 0;
+          if (hasDuplicates) {
+            updateFile(key, {
+              status: 'duplicate-warning',
+              duplicateIds: receipt.possibleDuplicateIds ?? [],
+            });
+          } else {
+            updateFile(key, { status: 'success' });
+          }
           return;
         }
         if (receipt.status === 'failed') {
-          updateFileStatus(key, 'analysis-failed');
+          updateFile(key, { status: 'analysis-failed' });
           return;
         }
       }
-      updateFileStatus(key, 'analysis-failed');
+      updateFile(key, { status: 'analysis-failed' });
     } catch {
-      updateFileStatus(key, 'analysis-failed');
+      updateFile(key, { status: 'analysis-failed' });
     }
   };
 
@@ -102,9 +117,13 @@ export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
   const reset = () => setUploadState({ status: 'idle' });
   const isProcessing = uploadState.status === 'processing';
 
-  // 完了後3秒で自動的にidle状態に戻す
+  // 重複警告がない場合のみ完了後3秒で自動的にidle状態に戻す
   useEffect(() => {
     if (uploadState.status !== 'done') return;
+    const hasDuplicateWarning = uploadState.files.some(
+      (f) => f.status === 'duplicate-warning',
+    );
+    if (hasDuplicateWarning) return;
     const timer = setTimeout(reset, 3000);
     return () => clearTimeout(timer);
   }, [uploadState.status]);
@@ -166,46 +185,69 @@ export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
   );
 }
 
+const SPINNER = (
+  <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-300" />
+);
+
 function FileStatusRow({ file }: { file: FileItem }) {
   const icons: Record<FileItemStatus, React.ReactNode> = {
-    uploading: (
-      <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-300" />
-    ),
-    analyzing: (
-      <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-300" />
-    ),
-    success: (
-      <span className="text-sm text-emerald-500">✓</span>
-    ),
-    'analysis-failed': (
-      <span className="text-sm text-red-500">✕</span>
-    ),
+    uploading: SPINNER,
+    analyzing: SPINNER,
+    'duplicate-checking': SPINNER,
+    success: <span className="text-sm text-emerald-500">✓</span>,
+    'duplicate-warning': <span className="text-sm text-amber-500">⚠</span>,
+    'analysis-failed': <span className="text-sm text-red-500">✕</span>,
   };
 
   const labels: Record<FileItemStatus, string> = {
     uploading: 'アップロード中',
     analyzing: '解析中',
+    'duplicate-checking': '重複チェック中',
     success: '完了',
+    'duplicate-warning': '重複の可能性',
     'analysis-failed': '解析失敗',
   };
 
+  const statusColor =
+    file.status === 'success'
+      ? 'text-emerald-500'
+      : file.status === 'duplicate-warning'
+      ? 'text-amber-500'
+      : file.status === 'analysis-failed'
+      ? 'text-red-500'
+      : 'text-zinc-400 dark:text-zinc-500';
+
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-zinc-50 px-4 py-3 dark:bg-zinc-800">
-      <div className="flex h-5 w-5 items-center justify-center">
-        {icons[file.status]}
+    <div className={`rounded-lg px-4 py-3 dark:bg-zinc-800 ${
+      file.status === 'duplicate-warning'
+        ? 'border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950'
+        : 'bg-zinc-50'
+    }`}>
+      <div className="flex items-center gap-3">
+        <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+          {icons[file.status]}
+        </div>
+        <span className="flex-1 truncate text-sm text-zinc-700 dark:text-zinc-300">
+          {file.fileName}
+        </span>
+        <span className={`shrink-0 text-xs ${statusColor}`}>
+          {labels[file.status]}
+        </span>
       </div>
-      <span className="flex-1 truncate text-sm text-zinc-700 dark:text-zinc-300">
-        {file.fileName}
-      </span>
-      <span className={`text-xs ${
-        file.status === 'success'
-          ? 'text-emerald-500'
-          : file.status === 'analysis-failed'
-          ? 'text-red-500'
-          : 'text-zinc-400 dark:text-zinc-500'
-      }`}>
-        {labels[file.status]}
-      </span>
+
+      {file.status === 'duplicate-warning' && file.receiptId && (
+        <div className="mt-2 pl-8">
+          <p className="text-xs text-amber-700 dark:text-amber-300">
+            同日・同額の既存レシートが見つかりました。
+          </p>
+          <Link
+            href={`/receipts/${file.receiptId}/duplicates`}
+            className="mt-1 inline-block text-xs font-medium text-amber-700 underline underline-offset-2 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-100"
+          >
+            重複を確認する →
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

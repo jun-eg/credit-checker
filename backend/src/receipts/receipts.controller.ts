@@ -5,6 +5,7 @@ import {
   Delete,
   FileTypeValidator,
   Get,
+  Header,
   HttpCode,
   MaxFileSizeValidator,
   Param,
@@ -14,6 +15,7 @@ import {
   Patch,
   Post,
   Query,
+  StreamableFile,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -83,6 +85,7 @@ export class ReceiptsController {
         purchasedAt: r.purchasedAt,
         total: r.total,
         currency: r.currency,
+        possibleDuplicateIds: r.possibleDuplicateIds ?? null,
         createdAt: r.createdAt,
       })),
     };
@@ -139,6 +142,7 @@ export class ReceiptsController {
       total: receipt.total,
       currency: receipt.currency,
       items: [],
+      possibleDuplicateIds: receipt.possibleDuplicateIds ?? null,
       createdAt: receipt.createdAt,
       updatedAt: receipt.updatedAt,
     };
@@ -151,6 +155,16 @@ export class ReceiptsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<void> {
     await this.receiptsService.deleteReceipt(id, user.id);
+  }
+
+  @Get(':id/image')
+  @Header('Cache-Control', 'private, max-age=3600')
+  async getReceiptImage(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<StreamableFile> {
+    const { buffer, mimeType } = await this.receiptsService.getReceiptImage(id, user.id);
+    return new StreamableFile(buffer, { type: mimeType });
   }
 
   @Get(':id')
@@ -176,6 +190,7 @@ export class ReceiptsController {
         totalPrice: Number(item.totalPrice),
         category: item.category,
       })),
+      possibleDuplicateIds: receipt.possibleDuplicateIds ?? null,
       createdAt: receipt.createdAt,
       updatedAt: receipt.updatedAt,
     };

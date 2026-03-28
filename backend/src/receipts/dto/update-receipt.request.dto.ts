@@ -1,5 +1,6 @@
 export class UpdateReceiptItemDto {
-  id: string;
+  id?: string;
+  name?: string;
   category?: string | null;
   quantity?: number;
   unitPrice?: number;

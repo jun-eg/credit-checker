@@ -122,6 +122,19 @@ export async function deleteReceipt(id: string, token: string): Promise<void> {
   }
 }
 
+export async function getReceiptImageUrl(id: string, token: string): Promise<string> {
+  const res = await fetch(`${backendUrl}/receipts/${id}/image`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    throw new Error(`画像の取得に失敗しました (${res.status})`);
+  }
+
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
 export async function uploadReceipt(
   file: File,
   token: string,

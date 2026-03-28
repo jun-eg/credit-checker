@@ -31,7 +31,7 @@ export default async function ReceiptDetailPage({ params }: ReceiptDetailPagePro
           ← レシート一覧
         </Link>
 
-        <ReceiptDetailContent receipt={receipt} />
+        <ReceiptDetailContent receipt={receipt} token={session.backendToken} />
       </main>
     </div>
   );

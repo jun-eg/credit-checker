@@ -54,6 +54,9 @@ export class Receipt {
   @Column({ name: 'gpt_response', type: 'jsonb', nullable: true })
   gptResponse: Record<string, unknown> | null;
 
+  @Column({ name: 'possible_duplicate_ids', type: 'jsonb', nullable: true })
+  possibleDuplicateIds: string[] | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

@@ -84,6 +84,7 @@ function EditModal({ receiptId, backendToken, onClose, onSaved }: EditModalProps
           purchasedAt: data.purchasedAt ? new Date(data.purchasedAt).toISOString() : null,
           total: data.total,
           currency: detail?.currency ?? 'JPY',
+          possibleDuplicateIds: detail?.possibleDuplicateIds ?? null,
           createdAt: detail?.createdAt ?? new Date().toISOString(),
         });
       } catch (e) {
@@ -94,7 +95,7 @@ function EditModal({ receiptId, backendToken, onClose, onSaved }: EditModalProps
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 py-10"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 py-10 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="w-full max-w-2xl">
@@ -167,8 +168,10 @@ function ReceiptRow({ receipt, isLast, onEdit, onDelete }: ReceiptRowProps) {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-4">
-            <span className={`text-xs ${STATUS_STYLES[receipt.status]}`}>
-              {STATUS_LABELS[receipt.status]}
+            <span className={`text-xs ${receipt.status === 'completed' && receipt.possibleDuplicateIds && receipt.possibleDuplicateIds.length > 0 ? 'text-amber-500' : STATUS_STYLES[receipt.status]}`}>
+              {receipt.status === 'completed' && receipt.possibleDuplicateIds && receipt.possibleDuplicateIds.length > 0
+                ? '重複の可能性あり'
+                : STATUS_LABELS[receipt.status]}
             </span>
             <span className="w-24 text-right text-sm tabular-nums text-zinc-700 dark:text-zinc-300">
               {formatAmount(receipt.total, receipt.currency)}
