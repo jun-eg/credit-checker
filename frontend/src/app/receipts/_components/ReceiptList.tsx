@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ListReceiptItem, GetReceiptDetailResponse } from '../../../types/receipt';
+import { type UpdateReceiptItemRequest, ListReceiptItem, GetReceiptDetailResponse } from '../../../types/receipt';
 import { getReceiptDetail, updateReceipt, deleteReceipt } from '../../../lib/api/receipts';
 import { ReceiptDetailContent } from '../../../components/ReceiptDetailContent';
 
@@ -65,13 +65,16 @@ function EditModal({ receiptId, backendToken, onClose, onSaved }: EditModalProps
       .catch(() => setLoadError('レシートの取得に失敗しました'));
   }, [receiptId, backendToken]);
 
-  const handleSave = (data: { storeName: string | null; purchasedAt: string | null; total: number | null }) => {
+  const handleSave = (data: { storeName: string | null; purchasedAt: string | null; total: number | null; items: UpdateReceiptItemRequest[] }) => {
     startSaveTransition(async () => {
       setSaveError('');
       try {
         await updateReceipt(receiptId, backendToken, {
-          ...data,
+          storeName: data.storeName,
+          purchasedAt: data.purchasedAt,
+          total: data.total,
           currency: detail?.currency ?? 'JPY',
+          items: data.items,
         });
         onSaved({
           id: receiptId,

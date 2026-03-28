@@ -127,6 +127,7 @@ export class ReceiptsService {
       purchasedAt?: string | null;
       total?: number | null;
       currency?: string | null;
+      items?: { id: string; category?: string | null; quantity?: number; unitPrice?: number; totalPrice?: number }[];
     },
   ): Promise<Receipt> {
     const receipt = await this.receiptsRepository.findOneBy({ id: receiptId, userId });
@@ -141,7 +142,21 @@ export class ReceiptsService {
     if (data.total !== undefined) receipt.total = data.total;
     if (data.currency !== undefined) receipt.currency = data.currency;
 
-    return this.receiptsRepository.save(receipt);
+    await this.receiptsRepository.save(receipt);
+
+    if (data.items && data.items.length > 0) {
+      for (const itemData of data.items) {
+        const item = await this.receiptItemsRepository.findOneBy({ id: itemData.id, receiptId });
+        if (!item) continue;
+        if (itemData.category !== undefined) item.category = itemData.category;
+        if (itemData.quantity !== undefined) item.quantity = itemData.quantity;
+        if (itemData.unitPrice !== undefined) item.unitPrice = itemData.unitPrice;
+        if (itemData.totalPrice !== undefined) item.totalPrice = itemData.totalPrice;
+        await this.receiptItemsRepository.save(item);
+      }
+    }
+
+    return this.receiptsRepository.findOne({ where: { id: receiptId }, relations: ['items'] }) as Promise<Receipt>;
   }
 
   async deleteReceipt(receiptId: string, userId: string): Promise<void> {
