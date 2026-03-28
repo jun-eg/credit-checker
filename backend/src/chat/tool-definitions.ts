@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 
 const DATE_PARAM = {
   type: 'string' as const,
-  description: '日付 (YYYY-MM-DD 形式)',
+  description: '日付 (YYYY-MM-DD 形式)。省略すると全期間が対象になる',
 };
 
 export const SPENDING_TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
@@ -10,14 +10,14 @@ export const SPENDING_TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'get_total_spending',
-      description: '指定期間の支出合計金額を取得する',
+      description: '指定期間の支出合計金額を取得する。期間未指定の場合は全期間が対象',
       parameters: {
         type: 'object',
         properties: {
-          from: { ...DATE_PARAM, description: '集計開始日 (YYYY-MM-DD)' },
-          to: { ...DATE_PARAM, description: '集計終了日 (YYYY-MM-DD)' },
+          from: { ...DATE_PARAM, description: '集計開始日 (YYYY-MM-DD)。省略可' },
+          to: { ...DATE_PARAM, description: '集計終了日 (YYYY-MM-DD)。省略可' },
         },
-        required: ['from', 'to'],
+        required: [],
         additionalProperties: false,
       },
     },
@@ -26,14 +26,14 @@ export const SPENDING_TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'get_spending_by_category',
-      description: '指定期間のカテゴリ別支出を取得する',
+      description: '指定期間のカテゴリ別支出を取得する。期間未指定の場合は全期間が対象',
       parameters: {
         type: 'object',
         properties: {
-          from: { ...DATE_PARAM, description: '集計開始日 (YYYY-MM-DD)' },
-          to: { ...DATE_PARAM, description: '集計終了日 (YYYY-MM-DD)' },
+          from: { ...DATE_PARAM, description: '集計開始日 (YYYY-MM-DD)。省略可' },
+          to: { ...DATE_PARAM, description: '集計終了日 (YYYY-MM-DD)。省略可' },
         },
-        required: ['from', 'to'],
+        required: [],
         additionalProperties: false,
       },
     },
@@ -42,19 +42,19 @@ export const SPENDING_TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'get_receipts',
-      description: '指定期間のレシート一覧を取得する',
+      description: '指定期間のレシート一覧を取得する。期間未指定の場合は全期間が対象',
       parameters: {
         type: 'object',
         properties: {
-          from: { ...DATE_PARAM, description: '取得開始日 (YYYY-MM-DD)' },
-          to: { ...DATE_PARAM, description: '取得終了日 (YYYY-MM-DD)' },
+          from: { ...DATE_PARAM, description: '取得開始日 (YYYY-MM-DD)。省略可' },
+          to: { ...DATE_PARAM, description: '取得終了日 (YYYY-MM-DD)。省略可' },
           category: {
             type: 'string',
             description:
               'カテゴリでフィルタリング（省略可）。指定できる値: 食費、日用品、交通費、外食、医療・薬、衣類・ファッション、娯楽・趣味、電子機器、その他',
           },
         },
-        required: ['from', 'to'],
+        required: [],
         additionalProperties: false,
       },
     },

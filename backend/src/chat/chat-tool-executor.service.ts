@@ -4,7 +4,10 @@ import { z } from 'zod';
 import { SpendingToolService } from './spending-tool.service';
 import { ToolName, ToolResult } from './types/tool.types';
 
-const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD形式で指定してください');
+const dateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD形式で指定してください')
+  .optional();
 
 const schemas = {
   get_total_spending: z.object({ from: dateSchema, to: dateSchema }),

@@ -31,6 +31,10 @@ export interface MonthlySummary {
 type RawTotal = { total: string };
 type RawCategoryTotal = { category: string | null; total: string };
 
+// 全期間を表すデフォルト値
+const ALL_TIME_FROM = '2000-01-01';
+const ALL_TIME_TO = '2099-12-31';
+
 @Injectable()
 export class SpendingToolService {
   constructor(
@@ -42,17 +46,19 @@ export class SpendingToolService {
 
   async getTotalSpending(
     userId: string,
-    from: string,
-    to: string,
+    from?: string,
+    to?: string,
   ): Promise<SpendingTotal> {
+    const f = from ?? ALL_TIME_FROM;
+    const t = to ?? ALL_TIME_TO;
     const result = (await this.receiptsRepository
       .createQueryBuilder('receipt')
       .select('COALESCE(SUM(receipt.total), 0)', 'total')
       .where('receipt.user_id = :userId', { userId })
       .andWhere('receipt.status = :status', { status: ReceiptStatus.COMPLETED })
       .andWhere('receipt.purchased_at BETWEEN :from AND :to', {
-        from,
-        to: `${to} 23:59:59`,
+        from: f,
+        to: `${t} 23:59:59`,
       })
       .getRawOne()) as RawTotal | undefined;
 
@@ -64,9 +70,11 @@ export class SpendingToolService {
 
   async getSpendingByCategory(
     userId: string,
-    from: string,
-    to: string,
+    from?: string,
+    to?: string,
   ): Promise<CategorySpending[]> {
+    const f = from ?? ALL_TIME_FROM;
+    const t = to ?? ALL_TIME_TO;
     const rows = (await this.receiptItemsRepository
       .createQueryBuilder('item')
       .innerJoin('item.receipt', 'receipt')
@@ -75,8 +83,8 @@ export class SpendingToolService {
       .where('receipt.user_id = :userId', { userId })
       .andWhere('receipt.status = :status', { status: ReceiptStatus.COMPLETED })
       .andWhere('receipt.purchased_at BETWEEN :from AND :to', {
-        from,
-        to: `${to} 23:59:59`,
+        from: f,
+        to: `${t} 23:59:59`,
       })
       .groupBy('item.category')
       .orderBy('total', 'DESC')
@@ -90,10 +98,12 @@ export class SpendingToolService {
 
   async getReceipts(
     userId: string,
-    from: string,
-    to: string,
+    from?: string,
+    to?: string,
     category?: string,
   ): Promise<ReceiptSummary[]> {
+    const f = from ?? ALL_TIME_FROM;
+    const t = to ?? ALL_TIME_TO;
     const qb = this.receiptsRepository
       .createQueryBuilder('receipt')
       .select([
@@ -106,8 +116,8 @@ export class SpendingToolService {
       .where('receipt.user_id = :userId', { userId })
       .andWhere('receipt.status = :status', { status: ReceiptStatus.COMPLETED })
       .andWhere('receipt.purchased_at BETWEEN :from AND :to', {
-        from,
-        to: `${to} 23:59:59`,
+        from: f,
+        to: `${t} 23:59:59`,
       });
 
     if (category) {
