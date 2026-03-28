@@ -72,10 +72,17 @@ export interface MonthTotal {
   total: number;
 }
 
+export interface MonthCategoryTotal {
+  month: number;
+  category: string;
+  total: number;
+}
+
 export interface YearlySummaryResponse {
   year: number;
   total: number;
   currency: string;
   byCategory: CategorySummary[];
   byMonth: MonthTotal[];
+  byMonthCategory: MonthCategoryTotal[];
 }

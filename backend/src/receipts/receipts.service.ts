@@ -134,6 +134,7 @@ export class ReceiptsService {
     currency: string;
     byCategory: { category: string; total: number }[];
     byMonth: { month: number; total: number }[];
+    byMonthCategory: { month: number; category: string; total: number }[];
   }> {
     const from = `${year}-01-01`;
     const to = `${year + 1}-01-01`;
@@ -141,8 +142,9 @@ export class ReceiptsService {
     type RawTotal = { total: string };
     type RawCategoryTotal = { category: string | null; total: string };
     type RawMonthTotal = { month: string; total: string };
+    type RawMonthCategoryTotal = { month: string; category: string | null; total: string };
 
-    const [totalResult, byCategory, byMonth] = await Promise.all([
+    const [totalResult, byCategory, byMonth, byMonthCategory] = await Promise.all([
       this.receiptsRepository
         .createQueryBuilder('receipt')
         .select('COALESCE(SUM(receipt.total), 0)', 'total')
@@ -173,6 +175,20 @@ export class ReceiptsService {
         .groupBy('month')
         .orderBy('month', 'ASC')
         .getRawMany() as Promise<RawMonthTotal[]>,
+
+      this.receiptItemsRepository
+        .createQueryBuilder('item')
+        .innerJoin('item.receipt', 'receipt')
+        .select('EXTRACT(MONTH FROM receipt.purchased_at)', 'month')
+        .addSelect('item.category', 'category')
+        .addSelect('SUM(item.total_price)', 'total')
+        .where('receipt.user_id = :userId', { userId })
+        .andWhere('receipt.status = :status', { status: ReceiptStatus.COMPLETED })
+        .andWhere('receipt.purchased_at >= :from AND receipt.purchased_at < :to', { from, to })
+        .groupBy('month')
+        .addGroupBy('item.category')
+        .orderBy('month', 'ASC')
+        .getRawMany() as Promise<RawMonthCategoryTotal[]>,
     ]);
 
     // 1〜12月すべてのエントリを返す（データなし月は0）
@@ -190,6 +206,11 @@ export class ReceiptsService {
         total: Number(row.total),
       })),
       byMonth: allMonths,
+      byMonthCategory: byMonthCategory.map((row) => ({
+        month: Number(row.month),
+        category: row.category ?? 'その他',
+        total: Number(row.total),
+      })),
     };
   }
 

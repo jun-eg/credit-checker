@@ -105,7 +105,7 @@ export default async function DashboardPage() {
           </h2>
 
           {yearly ? (
-            <MonthlyBarChart data={yearly.byMonth} currency={yearly.currency} />
+            <MonthlyBarChart data={yearly.byMonthCategory} currency={yearly.currency} />
           ) : (
             <p className="text-sm text-zinc-400 dark:text-zinc-600">データの取得に失敗しました</p>
           )}

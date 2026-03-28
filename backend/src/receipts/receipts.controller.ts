@@ -96,6 +96,7 @@ export class ReceiptsController {
       currency: summary.currency,
       byCategory: summary.byCategory,
       byMonth: summary.byMonth,
+      byMonthCategory: summary.byMonthCategory,
     };
   }
 
