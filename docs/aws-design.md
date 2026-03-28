@@ -9,14 +9,31 @@ Internet
     ↓
 [EC2] t3.small
     └── nginx (80/443)
-          ├── /api/* → NestJS container (:3003)
-          └── /*     → Next.js container (:3000)
+          ├── /api/v1/* → NestJS container (:3003)
+          └── /*        → Next.js container (:3000)  ← NextAuth の /api/auth/* も含む
     ↓                    ↓
 [RDS] PostgreSQL    [S3] レシート画像
 (Private Subnet)
 ```
 
 > ALBは使用しない。nginx + Certbot (Let's Encrypt) でSSL終端。
+
+### nginx ルーティング設定
+
+NestJS のグローバルプレフィックスを `/api/v1` にすることで、NextAuth.js が使用する `/api/auth/*` と名前空間が分離される。
+設定ファイルは `infra/nginx/default.conf` を参照。
+
+```nginx
+# NestJS API
+location /api/v1/ {
+    proxy_pass http://localhost:3003;
+}
+
+# Next.js（NextAuth の /api/auth/* を含むすべてのルート）
+location / {
+    proxy_pass http://localhost:3000;
+}
+```
 
 ---
 
