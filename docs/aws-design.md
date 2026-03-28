@@ -23,8 +23,9 @@ Internet
 NestJS のグローバルプレフィックスを `/api/v1` にすることで、NextAuth.js が使用する `/api/auth/*` と名前空間が分離される。
 
 > **EC2 セットアップ時の注意**: EC2 上の `.env` で以下を設定すること。
+> `BACKEND_URL` はコンテナ内からの接続のため Docker サービス名 `backend` を使用する（`localhost` はコンテナ自身を指すため不可）。
 > ```
-> BACKEND_URL=http://localhost:3003/api/v1
+> BACKEND_URL=http://backend:3003/api/v1
 > NEXT_PUBLIC_BACKEND_URL=https://<ドメイン>/api/v1
 > ```
 
