@@ -1,15 +1,6 @@
 import { ReceiptStatus } from '../../entities/receipt.entity';
 
-interface ReceiptItemDto {
-  id: string;
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-  category: string | null;
-}
-
-export class GetReceiptResponseDto {
+export class ListReceiptsItemDto {
   id: string;
   status: ReceiptStatus;
   originalFileName: string;
@@ -17,8 +8,10 @@ export class GetReceiptResponseDto {
   purchasedAt: Date | null;
   total: number | null;
   currency: string | null;
-  items: ReceiptItemDto[];
   possibleDuplicateIds: string[] | null;
   createdAt: Date;
-  updatedAt: Date;
+}
+
+export class ListReceiptsResponseDto {
+  items: ListReceiptsItemDto[];
 }
