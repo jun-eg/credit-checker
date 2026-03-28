@@ -11,6 +11,7 @@ import { Receipt } from './entities/receipt.entity';
 import { ReceiptItem } from './entities/receipt-item.entity';
 import { User } from './entities/user.entity';
 import { UsersModule } from './users/users.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     UsersModule,
     ReceiptsModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

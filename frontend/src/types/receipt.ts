@@ -7,3 +7,12 @@ export interface UploadReceiptResponse {
   status: ReceiptStatus;
   createdAt: string;
 }
+
+export interface GetReceiptResponse {
+  id: string;
+  status: ReceiptStatus;
+  originalFileName: string;
+  storeName: string | null;
+  total: number | null;
+  currency: string | null;
+}

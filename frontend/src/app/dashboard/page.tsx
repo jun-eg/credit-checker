@@ -1,6 +1,7 @@
 import { auth, signOut } from '../../../auth';
 import { redirect } from 'next/navigation';
 import { ReceiptUploadCard } from './_components/ReceiptUploadCard';
+import { ChatPanel } from './_components/ChatPanel';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -34,6 +35,7 @@ export default async function DashboardPage() {
 
       <main className="mx-auto max-w-4xl px-6 py-10">
         <ReceiptUploadCard backendToken={session.backendToken} />
+        <ChatPanel backendToken={session.backendToken} />
       </main>
     </div>
   );
