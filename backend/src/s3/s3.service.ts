@@ -19,14 +19,14 @@ export class S3Service {
 
   constructor(private readonly configService: ConfigService) {
     const endpoint = this.configService.get<string>('S3_ENDPOINT');
+    const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID');
+    const secretAccessKey = this.configService.get<string>('AWS_SECRET_ACCESS_KEY');
     this.client = new S3Client({
       region: this.configService.getOrThrow<string>('AWS_REGION'),
-      credentials: {
-        accessKeyId: this.configService.getOrThrow<string>('AWS_ACCESS_KEY_ID'),
-        secretAccessKey: this.configService.getOrThrow<string>(
-          'AWS_SECRET_ACCESS_KEY',
-        ),
-      },
+      // 設定済みの場合のみ明示的に渡す（ローカル開発用）。未設定時はEC2 IAMロールを自動使用する
+      ...(accessKeyId && secretAccessKey
+        ? { credentials: { accessKeyId, secretAccessKey } }
+        : {}),
       // ローカル開発時のみLocalStackへ向ける。本番では未設定にしてAWSデフォルトエンドポイントを使用する
       ...(endpoint ? { endpoint, forcePathStyle: true } : {}),
     });
