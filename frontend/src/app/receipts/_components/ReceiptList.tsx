@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ListReceiptItem } from '../../../types/receipt';
-import { updateReceipt, deleteReceipt } from '../../../lib/api/receipts';
+import { ListReceiptItem, GetReceiptDetailResponse } from '../../../types/receipt';
+import { getReceiptDetail, updateReceipt, deleteReceipt } from '../../../lib/api/receipts';
+import { ReceiptDetailContent } from '../../../components/ReceiptDetailContent';
 
 interface ReceiptListProps {
   receipts: ListReceiptItem[];
@@ -43,121 +44,86 @@ function formatAmount(amount: number | null, currency: string | null): string {
   }).format(amount);
 }
 
-// 日付を <input type="date"> の値形式に変換
-function toDateInputValue(dateStr: string | null): string {
-  if (!dateStr) return '';
-  return new Date(dateStr).toISOString().slice(0, 10);
-}
-
 // ---- 編集モーダル ----
 
 interface EditModalProps {
-  receipt: ListReceiptItem;
+  receiptId: string;
   backendToken: string;
   onClose: () => void;
   onSaved: (updated: ListReceiptItem) => void;
 }
 
-function EditModal({ receipt, backendToken, onClose, onSaved }: EditModalProps) {
-  const [storeName, setStoreName] = useState(receipt.storeName ?? '');
-  const [purchasedAt, setPurchasedAt] = useState(toDateInputValue(receipt.purchasedAt));
-  const [total, setTotal] = useState(receipt.total !== null ? String(receipt.total) : '');
-  const [error, setError] = useState('');
-  const [isPending, startTransition] = useTransition();
+function EditModal({ receiptId, backendToken, onClose, onSaved }: EditModalProps) {
+  const [detail, setDetail] = useState<GetReceiptDetailResponse | null>(null);
+  const [loadError, setLoadError] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const [isSaving, startSaveTransition] = useTransition();
 
-  const handleSave = () => {
-    startTransition(async () => {
-      setError('');
+  useEffect(() => {
+    getReceiptDetail(receiptId, backendToken)
+      .then(setDetail)
+      .catch(() => setLoadError('レシートの取得に失敗しました'));
+  }, [receiptId, backendToken]);
+
+  const handleSave = (data: { storeName: string | null; purchasedAt: string | null; total: number | null }) => {
+    startSaveTransition(async () => {
+      setSaveError('');
       try {
-        await updateReceipt(receipt.id, backendToken, {
-          storeName: storeName || null,
-          purchasedAt: purchasedAt || null,
-          total: total !== '' ? Number(total) : null,
-          currency: receipt.currency ?? 'JPY',
+        await updateReceipt(receiptId, backendToken, {
+          ...data,
+          currency: detail?.currency ?? 'JPY',
         });
         onSaved({
-          ...receipt,
-          storeName: storeName || null,
-          purchasedAt: purchasedAt ? new Date(purchasedAt).toISOString() : null,
-          total: total !== '' ? Number(total) : null,
+          id: receiptId,
+          status: detail?.status ?? 'completed',
+          originalFileName: detail?.originalFileName ?? '',
+          storeName: data.storeName,
+          purchasedAt: data.purchasedAt ? new Date(data.purchasedAt).toISOString() : null,
+          total: data.total,
+          currency: detail?.currency ?? 'JPY',
+          createdAt: detail?.createdAt ?? new Date().toISOString(),
         });
       } catch (e) {
-        setError(e instanceof Error ? e.message : '更新に失敗しました');
+        setSaveError(e instanceof Error ? e.message : '更新に失敗しました');
       }
     });
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 py-10"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900">
-        <h3 className="mb-5 text-base font-semibold text-zinc-900 dark:text-zinc-50">
-          レシートを編集
-        </h3>
-
-        <div className="space-y-4">
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              店舗名
-            </label>
-            <input
-              type="text"
-              value={storeName}
-              onChange={(e) => setStoreName(e.target.value)}
-              placeholder="店舗名"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:focus:border-zinc-500"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              購入日
-            </label>
-            <input
-              type="date"
-              value={purchasedAt}
-              onChange={(e) => setPurchasedAt(e.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:focus:border-zinc-500"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              合計金額
-            </label>
-            <input
-              type="number"
-              value={total}
-              onChange={(e) => setTotal(e.target.value)}
-              placeholder="0"
-              min="0"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:focus:border-zinc-500"
-            />
-          </div>
-        </div>
-
-        {error && (
-          <p className="mt-3 text-sm text-red-500">{error}</p>
-        )}
-
-        <div className="mt-6 flex justify-end gap-3">
+      <div className="w-full max-w-2xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-base font-semibold text-white">レシートを編集</h3>
           <button
             onClick={onClose}
-            disabled={isPending}
-            className="rounded-lg px-4 py-2 text-sm text-zinc-500 transition-colors hover:text-zinc-900 disabled:opacity-50 dark:text-zinc-400 dark:hover:text-zinc-50"
+            className="rounded-lg p-1.5 text-zinc-300 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label="閉じる"
           >
-            キャンセル
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isPending}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-          >
-            {isPending ? '保存中…' : '保存'}
+            <CloseIcon />
           </button>
         </div>
+
+        {loadError ? (
+          <div className="rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
+            <p className="text-center text-sm text-red-500">{loadError}</p>
+          </div>
+        ) : !detail ? (
+          <div className="rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
+            <p className="text-center text-sm text-zinc-400 dark:text-zinc-600">読み込み中…</p>
+          </div>
+        ) : (
+          <ReceiptDetailContent
+            receipt={detail}
+            editMode={true}
+            isSaving={isSaving}
+            error={saveError}
+            onSave={handleSave}
+            onCancel={onClose}
+          />
+        )}
       </div>
     </div>
   );
@@ -168,12 +134,11 @@ function EditModal({ receipt, backendToken, onClose, onSaved }: EditModalProps) 
 interface ReceiptRowProps {
   receipt: ListReceiptItem;
   isLast: boolean;
-  backendToken: string;
-  onEdit: (receipt: ListReceiptItem) => void;
+  onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }
 
-function ReceiptRow({ receipt, isLast, backendToken: _token, onEdit, onDelete }: ReceiptRowProps) {
+function ReceiptRow({ receipt, isLast, onEdit, onDelete }: ReceiptRowProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, startTransition] = useTransition();
 
@@ -186,7 +151,6 @@ function ReceiptRow({ receipt, isLast, backendToken: _token, onEdit, onDelete }:
   return (
     <li className={!isLast ? 'border-b border-zinc-100 dark:border-zinc-800' : ''}>
       <div className="flex items-center gap-2 px-6 py-4">
-        {/* クリックで詳細へ */}
         <Link
           href={`/receipts/${receipt.id}`}
           className="flex min-w-0 flex-1 items-center gap-4 transition-colors hover:opacity-80"
@@ -210,10 +174,9 @@ function ReceiptRow({ receipt, isLast, backendToken: _token, onEdit, onDelete }:
           </div>
         </Link>
 
-        {/* 編集・削除ボタン */}
         <div className="ml-2 flex shrink-0 items-center gap-1">
           <button
-            onClick={() => onEdit(receipt)}
+            onClick={() => onEdit(receipt.id)}
             className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
             aria-label="編集"
           >
@@ -257,11 +220,11 @@ function ReceiptRow({ receipt, isLast, backendToken: _token, onEdit, onDelete }:
 export function ReceiptList({ receipts: initial, backendToken }: ReceiptListProps) {
   const router = useRouter();
   const [receipts, setReceipts] = useState(initial);
-  const [editTarget, setEditTarget] = useState<ListReceiptItem | null>(null);
+  const [editTargetId, setEditTargetId] = useState<string | null>(null);
 
   const handleSaved = (updated: ListReceiptItem) => {
     setReceipts((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
-    setEditTarget(null);
+    setEditTargetId(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -270,7 +233,7 @@ export function ReceiptList({ receipts: initial, backendToken }: ReceiptListProp
       setReceipts((prev) => prev.filter((r) => r.id !== id));
       router.refresh();
     } catch {
-      // 削除失敗時は何もしない（行はそのまま残る）
+      // 削除失敗時は行をそのまま残す
     }
   };
 
@@ -290,18 +253,17 @@ export function ReceiptList({ receipts: initial, backendToken }: ReceiptListProp
             key={receipt.id}
             receipt={receipt}
             isLast={idx === receipts.length - 1}
-            backendToken={backendToken}
-            onEdit={setEditTarget}
+            onEdit={setEditTargetId}
             onDelete={handleDelete}
           />
         ))}
       </ul>
 
-      {editTarget && (
+      {editTargetId && (
         <EditModal
-          receipt={editTarget}
+          receiptId={editTargetId}
           backendToken={backendToken}
-          onClose={() => setEditTarget(null)}
+          onClose={() => setEditTargetId(null)}
           onSaved={handleSaved}
         />
       )}
@@ -327,6 +289,17 @@ function TrashIcon() {
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M5.5 1a.5.5 0 0 0 0 1h4a.5.5 0 0 0 0-1h-4ZM2 4.5a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H12v7.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5H2.5a.5.5 0 0 1-.5-.5ZM4 5v7.5h7V5H4Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M11.782 4.032a.575.575 0 1 0-.813-.814L7.5 6.687 4.032 3.218a.575.575 0 0 0-.814.814L6.687 7.5l-3.469 3.468a.575.575 0 0 0 .814.814L7.5 8.313l3.469 3.469a.575.575 0 0 0 .813-.814L8.313 7.5l3.469-3.468Z"
         fill="currentColor"
       />
     </svg>
