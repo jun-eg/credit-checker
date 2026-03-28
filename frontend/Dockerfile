@@ -12,11 +12,11 @@ RUN npm ci
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-# PostCSS等がfrontend内からモジュールを解決できるよう、frontend/node_modulesにもコピー
-# builderステージのみで使用するためfinalイメージのサイズには影響しない
-COPY --from=deps /app/node_modules ./frontend/node_modules
 COPY package.json ./
 COPY frontend/ ./frontend/
+# turbopack.rootのPostCSSチャイルドプロセスへの反映バグのワークアラウンド
+# https://github.com/vercel/next.js/issues/92060
+ENV NODE_PATH=/app/node_modules
 RUN npm run build --workspace=frontend
 
 FROM base AS runner
