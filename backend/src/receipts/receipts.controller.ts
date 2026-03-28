@@ -1,12 +1,15 @@
 import {
   Controller,
+  DefaultValuePipe,
   FileTypeValidator,
   Get,
   MaxFileSizeValidator,
   Param,
   ParseFilePipe,
+  ParseIntPipe,
   ParseUUIDPipe,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -17,6 +20,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
 import { GetReceiptResponseDto } from './dto/get-receipt.response.dto';
+import { ListReceiptsResponseDto } from './dto/list-receipts.response.dto';
+import { MonthlySummaryResponseDto } from './dto/monthly-summary.response.dto';
 import { UploadReceiptResponseDto } from './dto/upload-receipt.response.dto';
 import { ReceiptsService } from './receipts.service';
 
@@ -54,6 +59,43 @@ export class ReceiptsController {
       originalFileName: receipt.originalFileName,
       status: receipt.status,
       createdAt: receipt.createdAt,
+    };
+  }
+
+  @Get()
+  async listReceipts(
+    @CurrentUser() user: User,
+  ): Promise<ListReceiptsResponseDto> {
+    const receipts = await this.receiptsService.listReceipts(user.id);
+
+    return {
+      items: receipts.map((r) => ({
+        id: r.id,
+        status: r.status,
+        originalFileName: r.originalFileName,
+        storeName: r.storeName,
+        purchasedAt: r.purchasedAt,
+        total: r.total,
+        currency: r.currency,
+        createdAt: r.createdAt,
+      })),
+    };
+  }
+
+  @Get('summary')
+  async getMonthlySummary(
+    @CurrentUser() user: User,
+    @Query('year', new DefaultValuePipe(new Date().getFullYear()), ParseIntPipe) year: number,
+    @Query('month', new DefaultValuePipe(new Date().getMonth() + 1), ParseIntPipe) month: number,
+  ): Promise<MonthlySummaryResponseDto> {
+    const summary = await this.receiptsService.getMonthlySummary(user.id, year, month);
+
+    return {
+      year,
+      month,
+      total: summary.total,
+      currency: summary.currency,
+      byCategory: summary.byCategory,
     };
   }
 

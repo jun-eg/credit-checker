@@ -118,4 +118,56 @@ export class ReceiptsService {
     }
     return receipt;
   }
+
+  async listReceipts(userId: string): Promise<Receipt[]> {
+    return this.receiptsRepository.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async getMonthlySummary(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<{ total: number; currency: string; byCategory: { category: string; total: number }[] }> {
+    const from = `${year}-${String(month).padStart(2, '0')}-01`;
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const nextYear = month === 12 ? year + 1 : year;
+    const to = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+
+    type RawTotal = { total: string };
+    type RawCategoryTotal = { category: string | null; total: string };
+
+    const [totalResult, byCategory] = await Promise.all([
+      this.receiptsRepository
+        .createQueryBuilder('receipt')
+        .select('COALESCE(SUM(receipt.total), 0)', 'total')
+        .where('receipt.user_id = :userId', { userId })
+        .andWhere('receipt.status = :status', { status: ReceiptStatus.COMPLETED })
+        .andWhere('receipt.purchased_at >= :from AND receipt.purchased_at < :to', { from, to })
+        .getRawOne() as Promise<RawTotal | undefined>,
+
+      this.receiptItemsRepository
+        .createQueryBuilder('item')
+        .innerJoin('item.receipt', 'receipt')
+        .select('item.category', 'category')
+        .addSelect('SUM(item.total_price)', 'total')
+        .where('receipt.user_id = :userId', { userId })
+        .andWhere('receipt.status = :status', { status: ReceiptStatus.COMPLETED })
+        .andWhere('receipt.purchased_at >= :from AND receipt.purchased_at < :to', { from, to })
+        .groupBy('item.category')
+        .orderBy('total', 'DESC')
+        .getRawMany() as Promise<RawCategoryTotal[]>,
+    ]);
+
+    return {
+      total: Number(totalResult?.total ?? 0),
+      currency: 'JPY',
+      byCategory: byCategory.map((row) => ({
+        category: row.category ?? 'その他',
+        total: Number(row.total),
+      })),
+    };
+  }
 }
