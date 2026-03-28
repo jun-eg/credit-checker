@@ -14,6 +14,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY frontend/ ./frontend/
+# turbopack.root='/app'の範囲内でnode_modulesを解決できるようにシンボリックリンクを作成
+RUN ln -s /app/node_modules /app/frontend/node_modules
 RUN npm run build --workspace=frontend
 
 FROM base AS runner
