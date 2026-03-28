@@ -23,6 +23,8 @@ import { ChatModule } from './chat/chat.module';
       migrations: ['dist/migrations/*.js'],
       synchronize: false,
       logging: process.env.NODE_ENV === 'development',
+      // RDS はSSL必須。証明書チェーンの検証はスキップ（AWS管理の自己署名CA）
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
     }),
     AuthModule,
     UsersModule,
