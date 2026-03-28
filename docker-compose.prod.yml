@@ -1,0 +1,24 @@
+services:
+  frontend:
+    image: ${ECR_REGISTRY}/credit-checker-frontend:${IMAGE_TAG:-latest}
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+  backend:
+    image: ${ECR_REGISTRY}/credit-checker-backend:${IMAGE_TAG:-latest}
+    restart: always
+    ports:
+      - "3003:3003"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_S3_BUCKET=${S3_BUCKET_NAME}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
