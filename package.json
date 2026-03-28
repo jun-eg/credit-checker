@@ -2,20 +2,14 @@
   "name": "credit-checker",
   "version": "0.0.1",
   "private": true,
-  "workspaces": [
-    "frontend",
-    "backend"
-  ],
   "scripts": {
-    "dev:frontend": "npm run dev --workspace=frontend",
-    "dev:backend": "npm run start:dev --workspace=backend",
-    "lint": "npm run lint --workspaces --if-present",
+    "install": "npm install --prefix frontend && npm install --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "npm run start:dev --prefix backend",
+    "lint": "npm run lint --prefix frontend && npm run lint --prefix backend",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,css,md}\" --ignore-path .prettierignore"
   },
   "devDependencies": {
     "prettier": "^3.5.3"
-  },
-  "dependencies": {
-    "@nestjs/platform-express": "^11.1.17"
   }
 }
