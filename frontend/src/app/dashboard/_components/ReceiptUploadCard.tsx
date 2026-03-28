@@ -1,6 +1,6 @@
 'use client';
 
-import { DragEvent, ChangeEvent, useRef, useState } from 'react';
+import { DragEvent, ChangeEvent, useEffect, useRef, useState } from 'react';
 import { getReceipt, uploadReceipt } from '../../../lib/api/receipts';
 
 const POLL_INTERVAL_MS = 2000;
@@ -100,8 +100,14 @@ export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
   };
 
   const reset = () => setUploadState({ status: 'idle' });
-
   const isProcessing = uploadState.status === 'processing';
+
+  // 完了後3秒で自動的にidle状態に戻す
+  useEffect(() => {
+    if (uploadState.status !== 'done') return;
+    const timer = setTimeout(reset, 3000);
+    return () => clearTimeout(timer);
+  }, [uploadState.status]);
 
   return (
     <div className="rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
@@ -114,14 +120,6 @@ export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
           {uploadState.files.map((f) => (
             <FileStatusRow key={f.key} file={f} />
           ))}
-          {uploadState.status === 'done' && (
-            <button
-              onClick={reset}
-              className="mt-2 self-center rounded-full bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-            >
-              続けてアップロード
-            </button>
-          )}
         </div>
       ) : (
         <>
