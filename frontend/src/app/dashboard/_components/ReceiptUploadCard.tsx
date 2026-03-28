@@ -11,6 +11,7 @@ type UploadState =
   | { status: 'uploading' }
   | { status: 'analyzing'; fileName: string }
   | { status: 'success'; receiptId: string; fileName: string }
+  | { status: 'analysis-failed'; fileName: string }
   | { status: 'error'; message: string };
 
 interface ReceiptUploadCardProps {
@@ -32,13 +33,17 @@ export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
     while (Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
       const receipt = await getReceipt(receiptId, backendToken);
-      if (receipt.status === 'completed' || receipt.status === 'failed') {
+      if (receipt.status === 'completed') {
         setUploadState({ status: 'success', receiptId, fileName });
         return;
       }
+      if (receipt.status === 'failed') {
+        setUploadState({ status: 'analysis-failed', fileName });
+        return;
+      }
     }
-    // タイムアウト時もアップロード自体は成功しているので成功扱いにする
-    setUploadState({ status: 'success', receiptId, fileName });
+    // タイムアウト：解析が完了していないことをユーザーに伝える
+    setUploadState({ status: 'analysis-failed', fileName });
   };
 
   const handleFile = async (file: File) => {
@@ -77,7 +82,22 @@ export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
         レシートをアップロード
       </h2>
 
-      {uploadState.status === 'analyzing' ? (
+      {uploadState.status === 'analysis-failed' ? (
+        <div className="flex flex-col items-center gap-4 py-6 text-center">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            <span className="font-medium">{uploadState.fileName}</span> の解析に失敗しました
+          </p>
+          <p className="text-xs text-zinc-400 dark:text-zinc-500">
+            画像は保存済みです。時間をおいて再度お試しください
+          </p>
+          <button
+            onClick={reset}
+            className="rounded-full bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            別の画像をアップロード
+          </button>
+        </div>
+      ) : uploadState.status === 'analyzing' ? (
         <div className="flex flex-col items-center gap-4 py-6 text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-50" />
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
