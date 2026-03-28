@@ -14,7 +14,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY frontend/ ./frontend/
-RUN npm run build --workspace=frontend
+WORKDIR /app/frontend
+RUN /app/node_modules/.bin/next build
 
 FROM base AS runner
 WORKDIR /app
