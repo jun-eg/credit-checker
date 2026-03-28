@@ -3,6 +3,7 @@ import {
   GetReceiptResponse,
   ListReceiptsResponse,
   MonthlySummaryResponse,
+  YearlySummaryResponse,
   UploadReceiptResponse,
 } from '../../types/receipt';
 
@@ -68,6 +69,22 @@ export async function getMonthlySummary(
   }
 
   return res.json() as Promise<MonthlySummaryResponse>;
+}
+
+export async function getYearlySummary(
+  token: string,
+  year: number,
+): Promise<YearlySummaryResponse> {
+  const res = await fetch(`${backendUrl}/receipts/yearly?year=${year}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`取得に失敗しました (${res.status}): ${text}`);
+  }
+
+  return res.json() as Promise<YearlySummaryResponse>;
 }
 
 export async function uploadReceipt(

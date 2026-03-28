@@ -22,6 +22,7 @@ import { User } from '../entities/user.entity';
 import { GetReceiptResponseDto } from './dto/get-receipt.response.dto';
 import { ListReceiptsResponseDto } from './dto/list-receipts.response.dto';
 import { MonthlySummaryResponseDto } from './dto/monthly-summary.response.dto';
+import { YearlySummaryResponseDto } from './dto/yearly-summary.response.dto';
 import { UploadReceiptResponseDto } from './dto/upload-receipt.response.dto';
 import { ReceiptsService } from './receipts.service';
 
@@ -79,6 +80,22 @@ export class ReceiptsController {
         currency: r.currency,
         createdAt: r.createdAt,
       })),
+    };
+  }
+
+  @Get('yearly')
+  async getYearlySummary(
+    @CurrentUser() user: User,
+    @Query('year', new DefaultValuePipe(new Date().getFullYear()), ParseIntPipe) year: number,
+  ): Promise<YearlySummaryResponseDto> {
+    const summary = await this.receiptsService.getYearlySummary(user.id, year);
+
+    return {
+      year,
+      total: summary.total,
+      currency: summary.currency,
+      byCategory: summary.byCategory,
+      byMonth: summary.byMonth,
     };
   }
 

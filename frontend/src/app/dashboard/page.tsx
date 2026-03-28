@@ -3,8 +3,9 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { AppHeader } from '../../components/AppHeader';
 import { CategoryBarChart } from '../../components/CategoryBarChart';
+import { MonthlyBarChart } from '../../components/MonthlyBarChart';
 import { ChatPanel } from './_components/ChatPanel';
-import { getMonthlySummary } from '../../lib/api/receipts';
+import { getMonthlySummary, getYearlySummary } from '../../lib/api/receipts';
 
 function formatAmount(amount: number, currency: string): string {
   return new Intl.NumberFormat('ja-JP', {
@@ -25,25 +26,25 @@ export default async function DashboardPage() {
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
 
-  let summary = null;
-  try {
-    summary = await getMonthlySummary(session.backendToken, year, month);
-  } catch {
-    // サマリー取得失敗時はnullのまま表示
-  }
+  const [monthlySummary, yearlySummary] = await Promise.allSettled([
+    getMonthlySummary(session.backendToken, year, month),
+    getYearlySummary(session.backendToken, year),
+  ]);
 
-  const monthLabel = `${year}年${month}月`;
+  const monthly = monthlySummary.status === 'fulfilled' ? monthlySummary.value : null;
+  const yearly = yearlySummary.status === 'fulfilled' ? yearlySummary.value : null;
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
       <AppHeader currentPath="/dashboard" />
 
       <main className="mx-auto max-w-4xl space-y-6 px-6 py-10">
-        {/* 当月サマリー */}
+
+        {/* 今月の支出 */}
         <div className="rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-              {monthLabel}の支出
+              {year}年{month}月の支出
             </h2>
             <Link
               href="/receipts"
@@ -53,34 +54,60 @@ export default async function DashboardPage() {
             </Link>
           </div>
 
-          {summary ? (
+          {monthly ? (
             <>
               <p className="mb-8 text-4xl font-bold tabular-nums text-zinc-900 dark:text-zinc-50">
-                {formatAmount(summary.total, summary.currency)}
+                {formatAmount(monthly.total, monthly.currency)}
               </p>
-
-              {summary.byCategory.length > 0 && (
-                <div>
-                  <h3 className="mb-4 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                    カテゴリ別内訳
-                  </h3>
-                  <CategoryBarChart
-                    data={summary.byCategory}
-                    currency={summary.currency}
-                  />
-                </div>
-              )}
-
-              {summary.byCategory.length === 0 && summary.total === 0 && (
+              {monthly.byCategory.length > 0 ? (
+                <CategoryBarChart data={monthly.byCategory} currency={monthly.currency} />
+              ) : (
                 <p className="text-sm text-zinc-400 dark:text-zinc-600">
                   今月の解析済みレシートがありません
                 </p>
               )}
             </>
           ) : (
-            <p className="text-sm text-zinc-400 dark:text-zinc-600">
-              データの取得に失敗しました
-            </p>
+            <p className="text-sm text-zinc-400 dark:text-zinc-600">データの取得に失敗しました</p>
+          )}
+        </div>
+
+        {/* 今年の支出 */}
+        <div className="rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              {year}年の支出
+            </h2>
+            {yearly && (
+              <span className="text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-50">
+                {formatAmount(yearly.total, yearly.currency)}
+              </span>
+            )}
+          </div>
+
+          {yearly ? (
+            yearly.byCategory.length > 0 ? (
+              <CategoryBarChart data={yearly.byCategory} currency={yearly.currency} />
+            ) : (
+              <p className="text-sm text-zinc-400 dark:text-zinc-600">
+                今年の解析済みレシートがありません
+              </p>
+            )
+          ) : (
+            <p className="text-sm text-zinc-400 dark:text-zinc-600">データの取得に失敗しました</p>
+          )}
+        </div>
+
+        {/* 月別推移 */}
+        <div className="rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
+          <h2 className="mb-6 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            {year}年 月別支出
+          </h2>
+
+          {yearly ? (
+            <MonthlyBarChart data={yearly.byMonth} currency={yearly.currency} />
+          ) : (
+            <p className="text-sm text-zinc-400 dark:text-zinc-600">データの取得に失敗しました</p>
           )}
         </div>
 

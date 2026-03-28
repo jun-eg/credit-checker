@@ -66,3 +66,16 @@ export interface MonthlySummaryResponse {
   currency: string;
   byCategory: CategorySummary[];
 }
+
+export interface MonthTotal {
+  month: number;
+  total: number;
+}
+
+export interface YearlySummaryResponse {
+  year: number;
+  total: number;
+  currency: string;
+  byCategory: CategorySummary[];
+  byMonth: MonthTotal[];
+}

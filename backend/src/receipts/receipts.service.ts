@@ -126,6 +126,73 @@ export class ReceiptsService {
     });
   }
 
+  async getYearlySummary(
+    userId: string,
+    year: number,
+  ): Promise<{
+    total: number;
+    currency: string;
+    byCategory: { category: string; total: number }[];
+    byMonth: { month: number; total: number }[];
+  }> {
+    const from = `${year}-01-01`;
+    const to = `${year + 1}-01-01`;
+
+    type RawTotal = { total: string };
+    type RawCategoryTotal = { category: string | null; total: string };
+    type RawMonthTotal = { month: string; total: string };
+
+    const [totalResult, byCategory, byMonth] = await Promise.all([
+      this.receiptsRepository
+        .createQueryBuilder('receipt')
+        .select('COALESCE(SUM(receipt.total), 0)', 'total')
+        .where('receipt.user_id = :userId', { userId })
+        .andWhere('receipt.status = :status', { status: ReceiptStatus.COMPLETED })
+        .andWhere('receipt.purchased_at >= :from AND receipt.purchased_at < :to', { from, to })
+        .getRawOne() as Promise<RawTotal | undefined>,
+
+      this.receiptItemsRepository
+        .createQueryBuilder('item')
+        .innerJoin('item.receipt', 'receipt')
+        .select('item.category', 'category')
+        .addSelect('SUM(item.total_price)', 'total')
+        .where('receipt.user_id = :userId', { userId })
+        .andWhere('receipt.status = :status', { status: ReceiptStatus.COMPLETED })
+        .andWhere('receipt.purchased_at >= :from AND receipt.purchased_at < :to', { from, to })
+        .groupBy('item.category')
+        .orderBy('total', 'DESC')
+        .getRawMany() as Promise<RawCategoryTotal[]>,
+
+      this.receiptsRepository
+        .createQueryBuilder('receipt')
+        .select('EXTRACT(MONTH FROM receipt.purchased_at)', 'month')
+        .addSelect('COALESCE(SUM(receipt.total), 0)', 'total')
+        .where('receipt.user_id = :userId', { userId })
+        .andWhere('receipt.status = :status', { status: ReceiptStatus.COMPLETED })
+        .andWhere('receipt.purchased_at >= :from AND receipt.purchased_at < :to', { from, to })
+        .groupBy('month')
+        .orderBy('month', 'ASC')
+        .getRawMany() as Promise<RawMonthTotal[]>,
+    ]);
+
+    // 1〜12月すべてのエントリを返す（データなし月は0）
+    const monthMap = new Map(byMonth.map((r) => [Number(r.month), Number(r.total)]));
+    const allMonths = Array.from({ length: 12 }, (_, i) => ({
+      month: i + 1,
+      total: monthMap.get(i + 1) ?? 0,
+    }));
+
+    return {
+      total: Number(totalResult?.total ?? 0),
+      currency: 'JPY',
+      byCategory: byCategory.map((row) => ({
+        category: row.category ?? 'その他',
+        total: Number(row.total),
+      })),
+      byMonth: allMonths,
+    };
+  }
+
   async getMonthlySummary(
     userId: string,
     year: number,
