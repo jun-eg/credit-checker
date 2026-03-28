@@ -56,18 +56,34 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd /home/${{ secrets.EC2_USER }}/credit-checker
-            export ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
-            export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}
-            aws ecr get-login-password --region ${{ vars.AWS_REGION }} | docker login --username AWS --password-stdin $ECR_REGISTRY
-            docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d
-            docker image prune -f
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to EC2 via SSM
+        run: |
+          aws ssm send-command \
+            --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "export ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com",
+              "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
+              "aws ecr get-login-password --region ${{ vars.AWS_REGION }} | docker login --username AWS --password-stdin $ECR_REGISTRY",
+              "cd /home/ec2-user/credit-checker",
+              "docker compose -f docker-compose.prod.yml pull",
+              "docker compose -f docker-compose.prod.yml up -d",
+              "docker image prune -f"
+            ]' \
+            --region "${{ vars.AWS_REGION }}" \
+            --output text \
+            --query "Command.CommandId" | xargs -I {} \
+            aws ssm wait command-executed \
+              --command-id {} \
+              --instance-id "${{ secrets.EC2_INSTANCE_ID }}" \
+              --region "${{ vars.AWS_REGION }}"
