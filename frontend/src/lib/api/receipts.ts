@@ -3,6 +3,7 @@ import {
   GetReceiptResponse,
   ListReceiptsResponse,
   MonthlySummaryResponse,
+  UpdateReceiptRequest,
   YearlySummaryResponse,
   UploadReceiptResponse,
 } from '../../types/receipt';
@@ -85,6 +86,40 @@ export async function getYearlySummary(
   }
 
   return res.json() as Promise<YearlySummaryResponse>;
+}
+
+export async function updateReceipt(
+  id: string,
+  token: string,
+  data: UpdateReceiptRequest,
+): Promise<GetReceiptResponse> {
+  const res = await fetch(`${backendUrl}/receipts/${id}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`更新に失敗しました (${res.status}): ${text}`);
+  }
+
+  return res.json() as Promise<GetReceiptResponse>;
+}
+
+export async function deleteReceipt(id: string, token: string): Promise<void> {
+  const res = await fetch(`${backendUrl}/receipts/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`削除に失敗しました (${res.status}): ${text}`);
+  }
 }
 
 export async function uploadReceipt(

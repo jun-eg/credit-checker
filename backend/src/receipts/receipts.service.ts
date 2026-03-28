@@ -119,6 +119,39 @@ export class ReceiptsService {
     return receipt;
   }
 
+  async updateReceipt(
+    receiptId: string,
+    userId: string,
+    data: {
+      storeName?: string | null;
+      purchasedAt?: string | null;
+      total?: number | null;
+      currency?: string | null;
+    },
+  ): Promise<Receipt> {
+    const receipt = await this.receiptsRepository.findOneBy({ id: receiptId, userId });
+    if (!receipt) {
+      throw new NotFoundException(`レシートが見つかりません: ${receiptId}`);
+    }
+
+    if (data.storeName !== undefined) receipt.storeName = data.storeName;
+    if (data.purchasedAt !== undefined) {
+      receipt.purchasedAt = data.purchasedAt ? new Date(data.purchasedAt) : null;
+    }
+    if (data.total !== undefined) receipt.total = data.total;
+    if (data.currency !== undefined) receipt.currency = data.currency;
+
+    return this.receiptsRepository.save(receipt);
+  }
+
+  async deleteReceipt(receiptId: string, userId: string): Promise<void> {
+    const receipt = await this.receiptsRepository.findOneBy({ id: receiptId, userId });
+    if (!receipt) {
+      throw new NotFoundException(`レシートが見つかりません: ${receiptId}`);
+    }
+    await this.receiptsRepository.remove(receipt);
+  }
+
   async listReceipts(userId: string): Promise<Receipt[]> {
     return this.receiptsRepository.find({
       where: { userId },

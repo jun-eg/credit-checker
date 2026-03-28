@@ -1,13 +1,17 @@
 import {
+  Body,
   Controller,
   DefaultValuePipe,
+  Delete,
   FileTypeValidator,
   Get,
+  HttpCode,
   MaxFileSizeValidator,
   Param,
   ParseFilePipe,
   ParseIntPipe,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UploadedFile,
@@ -22,6 +26,7 @@ import { User } from '../entities/user.entity';
 import { GetReceiptResponseDto } from './dto/get-receipt.response.dto';
 import { ListReceiptsResponseDto } from './dto/list-receipts.response.dto';
 import { MonthlySummaryResponseDto } from './dto/monthly-summary.response.dto';
+import { UpdateReceiptRequestDto } from './dto/update-receipt.request.dto';
 import { YearlySummaryResponseDto } from './dto/yearly-summary.response.dto';
 import { UploadReceiptResponseDto } from './dto/upload-receipt.response.dto';
 import { ReceiptsService } from './receipts.service';
@@ -115,6 +120,37 @@ export class ReceiptsController {
       currency: summary.currency,
       byCategory: summary.byCategory,
     };
+  }
+
+  @Patch(':id')
+  async updateReceipt(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateReceiptRequestDto,
+  ): Promise<GetReceiptResponseDto> {
+    const receipt = await this.receiptsService.updateReceipt(id, user.id, body);
+
+    return {
+      id: receipt.id,
+      status: receipt.status,
+      originalFileName: receipt.originalFileName,
+      storeName: receipt.storeName,
+      purchasedAt: receipt.purchasedAt,
+      total: receipt.total,
+      currency: receipt.currency,
+      items: [],
+      createdAt: receipt.createdAt,
+      updatedAt: receipt.updatedAt,
+    };
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  async deleteReceipt(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    await this.receiptsService.deleteReceipt(id, user.id);
   }
 
   @Get(':id')

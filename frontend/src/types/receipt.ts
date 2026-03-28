@@ -17,6 +17,13 @@ export interface GetReceiptResponse {
   currency: string | null;
 }
 
+export interface UpdateReceiptRequest {
+  storeName?: string | null;
+  purchasedAt?: string | null;
+  total?: number | null;
+  currency?: string | null;
+}
+
 export interface ListReceiptItem {
   id: string;
   status: ReceiptStatus;
