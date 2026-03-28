@@ -21,7 +21,12 @@ Internet
 ### nginx ルーティング設定
 
 NestJS のグローバルプレフィックスを `/api/v1` にすることで、NextAuth.js が使用する `/api/auth/*` と名前空間が分離される。
-設定ファイルは `infra/nginx/default.conf` を参照。
+
+> **EC2 セットアップ時の注意**: EC2 上の `.env` で以下を設定すること。
+> ```
+> BACKEND_URL=http://localhost:3003/api/v1
+> NEXT_PUBLIC_BACKEND_URL=https://<ドメイン>/api/v1
+> ```
 
 ```nginx
 # NestJS API
