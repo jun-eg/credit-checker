@@ -1,7 +1,8 @@
 'use client';
 
 import { PieChart, Pie, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import type { PieLabelRenderProps } from 'recharts';
+import type { PieLabelRenderProps, TooltipContentProps } from 'recharts';
+import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 import { CategorySummary } from '../types/receipt';
 
 interface CategoryBarChartProps {
@@ -30,7 +31,38 @@ function formatAmount(amount: number, currency: string): string {
 
 function renderLabel(props: PieLabelRenderProps): string {
   const percent = props.percent ?? 0;
-  return `${String(props.name)} ${(percent * 100).toFixed(0)}%`;
+  if (percent < 0.05) return '';
+  return `${(percent * 100).toFixed(0)}%`;
+}
+
+function CustomTooltip({
+  active,
+  payload,
+  currency,
+}: TooltipContentProps<ValueType, NameType> & { currency: string }) {
+  if (!active || !payload?.length) return null;
+
+  const item = payload[0];
+  const name = String(item.name ?? '');
+  const value = Number(item.value ?? 0);
+  const fill = (item.payload as { fill?: string }).fill ?? '#888';
+
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+      <div className="flex items-center gap-2">
+        <span
+          className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
+          style={{ backgroundColor: fill }}
+        />
+        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          {name}
+        </span>
+      </div>
+      <p className="mt-1.5 text-right text-base font-bold tabular-nums text-zinc-900 dark:text-zinc-50">
+        {formatAmount(value, currency)}
+      </p>
+    </div>
+  );
 }
 
 export function CategoryBarChart({ data, currency }: CategoryBarChartProps) {
@@ -40,7 +72,6 @@ export function CategoryBarChart({ data, currency }: CategoryBarChartProps) {
     );
   }
 
-  // Rechartsにfillを渡すことでCell不要でスライスを色付け
   const chartData = data.map((item, i) => ({
     name: item.category,
     total: item.total,
@@ -58,11 +89,18 @@ export function CategoryBarChart({ data, currency }: CategoryBarChartProps) {
           cy="50%"
           outerRadius={110}
           label={renderLabel}
+          labelLine={false}
         />
         <Tooltip
-          formatter={(value) => [formatAmount(Number(value), currency), '金額']}
+          content={(props: TooltipContentProps<ValueType, NameType>) => (
+            <CustomTooltip {...props} currency={currency} />
+          )}
         />
-        <Legend />
+        <Legend
+          formatter={(value: string) => (
+            <span className="text-sm text-zinc-600 dark:text-zinc-400">{value}</span>
+          )}
+        />
       </PieChart>
     </ResponsiveContainer>
   );
