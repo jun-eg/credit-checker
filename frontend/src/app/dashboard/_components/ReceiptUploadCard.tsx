@@ -1,11 +1,15 @@
 'use client';
 
 import { DragEvent, ChangeEvent, useRef, useState } from 'react';
-import { uploadReceipt } from '../../../lib/api/receipts';
+import { getReceipt, uploadReceipt } from '../../../lib/api/receipts';
+
+const POLL_INTERVAL_MS = 2000;
+const POLL_TIMEOUT_MS = 120_000;
 
 type UploadState =
   | { status: 'idle' }
   | { status: 'uploading' }
+  | { status: 'analyzing'; fileName: string }
   | { status: 'success'; receiptId: string; fileName: string }
   | { status: 'error'; message: string };
 
@@ -18,11 +22,30 @@ export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const pollUntilAnalyzed = async (
+    receiptId: string,
+    fileName: string,
+  ): Promise<void> => {
+    setUploadState({ status: 'analyzing', fileName });
+
+    const deadline = Date.now() + POLL_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+      const receipt = await getReceipt(receiptId, backendToken);
+      if (receipt.status === 'completed' || receipt.status === 'failed') {
+        setUploadState({ status: 'success', receiptId, fileName });
+        return;
+      }
+    }
+    // タイムアウト時もアップロード自体は成功しているので成功扱いにする
+    setUploadState({ status: 'success', receiptId, fileName });
+  };
+
   const handleFile = async (file: File) => {
     setUploadState({ status: 'uploading' });
     try {
       const result = await uploadReceipt(file, backendToken);
-      setUploadState({ status: 'success', receiptId: result.id, fileName: result.originalFileName });
+      await pollUntilAnalyzed(result.id, result.originalFileName);
     } catch (error) {
       setUploadState({
         status: 'error',
@@ -45,6 +68,8 @@ export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
   };
 
   const reset = () => setUploadState({ status: 'idle' });
+  const isLoading =
+    uploadState.status === 'uploading' || uploadState.status === 'analyzing';
 
   return (
     <div className="rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
@@ -52,10 +77,17 @@ export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
         レシートをアップロード
       </h2>
 
-      {uploadState.status === 'success' ? (
+      {uploadState.status === 'analyzing' ? (
+        <div className="flex flex-col items-center gap-4 py-6 text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-50" />
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            <span className="font-medium">{uploadState.fileName}</span> を解析中...
+          </p>
+        </div>
+      ) : uploadState.status === 'success' ? (
         <div className="flex flex-col items-center gap-4 py-6 text-center">
           <p className="text-zinc-700 dark:text-zinc-300">
-            <span className="font-medium">{uploadState.fileName}</span> をアップロードしました
+            <span className="font-medium">{uploadState.fileName}</span> の解析が完了しました
           </p>
           <button
             onClick={reset}
@@ -74,7 +106,7 @@ export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
               isDragging
                 ? 'border-zinc-500 bg-zinc-100 dark:border-zinc-400 dark:bg-zinc-800'
                 : 'border-zinc-300 hover:border-zinc-400 dark:border-zinc-700 dark:hover:border-zinc-600'
-            } ${uploadState.status === 'uploading' ? 'pointer-events-none opacity-50' : ''}`}
+            } ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
             onClick={() => inputRef.current?.click()}
             onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
