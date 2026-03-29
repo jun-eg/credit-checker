@@ -8,7 +8,7 @@ import {
   UploadReceiptResponse,
 } from '../../types/receipt';
 
-const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:3003';
+const backendUrl = '/api/backend';
 
 export async function getReceipt(
   id: string,
