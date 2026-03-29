@@ -39,6 +39,8 @@ jobs:
           context: .
           file: frontend/Dockerfile
           push: true
+          build-args: |
+            NEXT_PUBLIC_BACKEND_URL=${{ vars.NEXT_PUBLIC_BACKEND_URL }}
           tags: |
             ${{ env.ECR_REGISTRY }}/credit-checker-frontend:${{ steps.meta.outputs.tag }}
             ${{ env.ECR_REGISTRY }}/credit-checker-frontend:latest

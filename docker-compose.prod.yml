@@ -9,8 +9,7 @@ services:
       - AUTH_SECRET=${AUTH_SECRET}
       - AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID}
       - AUTH_GOOGLE_SECRET=${AUTH_GOOGLE_SECRET}
-      - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
-      - BACKEND_URL=${BACKEND_URL}
+      - BACKEND_URL=http://backend:3003
 
   backend:
     image: ${ECR_REGISTRY}/credit-checker-backend:${IMAGE_TAG:-latest}
