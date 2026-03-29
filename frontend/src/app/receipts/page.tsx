@@ -25,11 +25,11 @@ export default async function ReceiptsPage() {
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
       <AppHeader currentPath="/receipts" />
 
-      <main className="mx-auto max-w-4xl space-y-6 px-6 py-10">
+      <main className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
         <ReceiptUploadCard backendToken={session.backendToken} />
 
         <div className="rounded-2xl bg-white shadow-sm dark:bg-zinc-900">
-          <div className="border-b border-zinc-100 px-8 py-5 dark:border-zinc-800">
+          <div className="border-b border-zinc-100 px-4 py-4 sm:px-8 sm:py-5 dark:border-zinc-800">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               レシート一覧
             </h2>

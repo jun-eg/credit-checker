@@ -154,33 +154,36 @@ function ReceiptRow({ receipt, isLast, onEdit, onDelete }: ReceiptRowProps) {
 
   return (
     <li className={!isLast ? 'border-b border-zinc-100 dark:border-zinc-800' : ''}>
-      <div className="flex items-center gap-2 px-6 py-4">
+      <div className="flex items-center gap-1 px-4 py-3 sm:gap-2 sm:px-6 sm:py-4">
         <Link
           href={`/receipts/${receipt.id}`}
-          className="flex min-w-0 flex-1 items-center gap-4 transition-colors hover:opacity-80"
+          className="flex min-w-0 flex-1 transition-colors hover:opacity-80"
         >
+          {/* スマホ: 2行レイアウト。PC: 横並び */}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
-              {receipt.storeName ?? receipt.originalFileName}
-            </p>
-            <p className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-600">
-              {formatDate(receipt.purchasedAt ?? receipt.createdAt)}
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                {receipt.storeName ?? receipt.originalFileName}
+              </p>
+              <span className="shrink-0 text-sm tabular-nums text-zinc-700 dark:text-zinc-300">
+                {formatAmount(receipt.total, receipt.currency)}
+              </span>
+            </div>
+            <div className="mt-0.5 flex items-center justify-between gap-2">
+              <p className="text-xs text-zinc-400 dark:text-zinc-600">
+                {formatDate(receipt.purchasedAt ?? receipt.createdAt)}
+              </p>
+              <span className={`shrink-0 text-xs ${receipt.status === 'completed' && receipt.possibleDuplicateIds && receipt.possibleDuplicateIds.length > 0 ? 'text-amber-500' : STATUS_STYLES[receipt.status]}`}>
+                {receipt.status === 'completed' && receipt.possibleDuplicateIds && receipt.possibleDuplicateIds.length > 0
+                  ? '重複の可能性あり'
+                  : STATUS_LABELS[receipt.status]}
+              </span>
+            </div>
           </div>
-          <div className="flex shrink-0 items-center gap-4">
-            <span className={`text-xs ${receipt.status === 'completed' && receipt.possibleDuplicateIds && receipt.possibleDuplicateIds.length > 0 ? 'text-amber-500' : STATUS_STYLES[receipt.status]}`}>
-              {receipt.status === 'completed' && receipt.possibleDuplicateIds && receipt.possibleDuplicateIds.length > 0
-                ? '重複の可能性あり'
-                : STATUS_LABELS[receipt.status]}
-            </span>
-            <span className="w-24 text-right text-sm tabular-nums text-zinc-700 dark:text-zinc-300">
-              {formatAmount(receipt.total, receipt.currency)}
-            </span>
-            <span className="text-zinc-300 dark:text-zinc-600">›</span>
-          </div>
+          <span className="ml-2 shrink-0 self-center text-zinc-300 dark:text-zinc-600">›</span>
         </Link>
 
-        <div className="ml-2 flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           <button
             onClick={() => onEdit(receipt.id)}
             className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"

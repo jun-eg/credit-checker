@@ -103,14 +103,14 @@ export function ChatPanel({ backendToken }: ChatPanelProps) {
 
   return (
     <div className="mt-6 rounded-2xl bg-white shadow-sm dark:bg-zinc-900">
-      <div className="border-b border-zinc-200 px-8 py-4 dark:border-zinc-800">
+      <div className="border-b border-zinc-200 px-4 py-4 sm:px-8 dark:border-zinc-800">
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
           支出アシスタント
         </h2>
       </div>
 
       {state.status === 'no-session' && (
-        <div className="flex flex-col items-center gap-4 px-8 py-12 text-center">
+        <div className="flex flex-col items-center gap-4 px-4 py-12 text-center sm:px-8">
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             支出についての質問にお答えします
           </p>
@@ -143,7 +143,7 @@ export function ChatPanel({ backendToken }: ChatPanelProps) {
 
       {(state.status === 'ready' || state.status === 'sending') && (
         <>
-          <div className="h-80 overflow-y-auto px-8 py-4">
+          <div className="h-80 overflow-y-auto px-4 py-4 sm:px-8">
             {messages.length === 0 && (
               <p className="text-center text-sm text-zinc-400 dark:text-zinc-500">
                 質問を入力してください（例:「今月の食費を教えて」）
@@ -177,7 +177,7 @@ export function ChatPanel({ backendToken }: ChatPanelProps) {
 
           <form
             onSubmit={handleSubmit}
-            className="flex items-end gap-3 border-t border-zinc-200 px-6 py-4 dark:border-zinc-800"
+            className="flex items-end gap-3 border-t border-zinc-200 px-4 py-4 sm:px-6 dark:border-zinc-800"
           >
             <textarea
               value={input}
