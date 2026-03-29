@@ -71,7 +71,7 @@ NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your_secret
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
-NEXT_PUBLIC_API_URL=http://localhost:4000
+BACKEND_URL=http://localhost:3003
 ```
 
 **`backend/.env`（新規作成）**
@@ -109,7 +109,7 @@ cd ../backend && npm install
 # フロントエンド（localhost:3000）
 npm run dev:frontend
 
-# バックエンド（localhost:4000）
+# バックエンド（localhost:3003）
 npm run dev:backend
 ```
 
