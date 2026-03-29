@@ -37,10 +37,10 @@ export default async function DashboardPage() {
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
       <AppHeader currentPath="/dashboard" />
 
-      <main className="mx-auto max-w-5xl space-y-6 px-6 py-10">
+      <main className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
 
-        {/* 上段: 今月・今年 横並び */}
-        <div className="grid grid-cols-2 gap-6">
+        {/* 上段: 今月・今年 スマホ1列・PC2列 */}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
 
           {/* 今月の支出 */}
           <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-zinc-900">
