@@ -6,7 +6,11 @@ import {
   ListMessagesResponse,
 } from '../../types/chat';
 
-const backendUrl = '/api/backend';
+// SSRではNginxを経由しないため、バックエンドコンテナに直接通信する
+const backendUrl =
+  typeof window === 'undefined'
+    ? process.env.BACKEND_URL
+    : '/api/backend';
 
 async function request<T>(
   path: string,
