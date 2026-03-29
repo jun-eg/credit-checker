@@ -4,7 +4,11 @@ import { useEffect, useState } from 'react';
 
 type BrowserState = 'loading' | 'normal' | 'android-webview' | 'ios-inapp';
 
-export function LoginCard() {
+type Props = {
+  signIn: () => Promise<void>;
+};
+
+export function LoginCard({ signIn }: Props) {
   const [browserState, setBrowserState] = useState<BrowserState>('loading');
 
   useEffect(() => {
@@ -51,12 +55,14 @@ export function LoginCard() {
           <p className="text-zinc-500 dark:text-zinc-400">
             レシートを管理して支出を把握しよう
           </p>
-          <a
-            href="/api/auth/signin/google?callbackUrl=/dashboard"
-            className="flex items-center gap-3 rounded-full bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-          >
-            Google でログイン
-          </a>
+          <form action={signIn}>
+            <button
+              type="submit"
+              className="flex items-center gap-3 rounded-full bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            >
+              Google でログイン
+            </button>
+          </form>
         </>
       )}
     </div>
