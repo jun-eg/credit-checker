@@ -20,10 +20,17 @@ const TOOL_CALLS_MARKER = '__tool_calls__';
 // 無限ループを防ぐためのツール呼び出し上限
 const MAX_TOOL_ITERATIONS = 5;
 
-const SYSTEM_PROMPT = `あなたは家計管理アシスタントです。ユーザーの支出に関する質問に、\
+function buildSystemPrompt(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+  return `あなたは家計管理アシスタントです。ユーザーの支出に関する質問に、\
 提供されたツールを使ってデータを取得した上で日本語で回答してください。\
 期間の指定がない場合は from と to を省略して全期間を対象としてください。\
-金額は日本円で表示し、カテゴリ別の内訳も合わせて提示してください。`;
+金額は日本円で表示し、カテゴリ別の内訳も合わせて提示してください。\
+今日の日付は${year}年${month}月${day}日です。「今月」は${year}年${month}月を指します。`;
+}
 
 @Injectable()
 export class ChatService {
@@ -81,7 +88,7 @@ export class ChatService {
     );
 
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: buildSystemPrompt() },
       ...this.toOpenAiMessages(history),
       { role: 'user', content: userMessage },
     ];
