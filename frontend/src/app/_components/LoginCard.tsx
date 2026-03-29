@@ -2,16 +2,26 @@
 
 import { useEffect, useState } from 'react';
 
+type BrowserState = 'loading' | 'normal' | 'android-webview' | 'ios-inapp';
+
 export function LoginCard() {
-  const [isInAppBrowser, setIsInAppBrowser] = useState(false);
+  const [browserState, setBrowserState] = useState<BrowserState>('loading');
 
   useEffect(() => {
     const ua = navigator.userAgent;
-    // Android WebView は UA に "wv" フラグを含む
     const isAndroidWebView = /\bwv\b/.test(ua);
-    // iOS の in-app ブラウザは iPhone/iPad を含むが Safari/ を含まない
     const isIosWebView = /iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua);
-    setIsInAppBrowser(isAndroidWebView || isIosWebView);
+
+    if (isAndroidWebView) {
+      // intent スキームで Chrome に自動リダイレクト
+      const { host, pathname, search } = location;
+      window.location.href = `intent://${host}${pathname}${search}#Intent;scheme=https;package=com.android.chrome;end`;
+      setBrowserState('android-webview');
+    } else if (isIosWebView) {
+      setBrowserState('ios-inapp');
+    } else {
+      setBrowserState('normal');
+    }
   }, []);
 
   return (
@@ -20,24 +30,23 @@ export function LoginCard() {
         Credit Checker
       </h1>
 
-      {isInAppBrowser ? (
-        <>
-          <div className="flex flex-col gap-3 rounded-xl bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
-            <p className="font-medium">アプリ内ブラウザではGoogleログインが使用できません</p>
-            <p>外部ブラウザで開いてから再度ログインしてください。</p>
-            <ul className="mt-1 list-disc pl-4 text-xs leading-relaxed">
-              <li>
-                <span className="font-medium">iOS：</span>
-                右下の共有ボタン →「Safariで開く」
-              </li>
-              <li>
-                <span className="font-medium">Android：</span>
-                右上の「…」→「他のアプリで開く」
-              </li>
-            </ul>
-          </div>
-        </>
-      ) : (
+      {browserState === 'loading' && null}
+
+      {browserState === 'android-webview' && (
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          ブラウザを起動しています…
+        </p>
+      )}
+
+      {browserState === 'ios-inapp' && (
+        <div className="flex flex-col gap-3 rounded-xl bg-yellow-50 p-4 text-sm text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+          <p className="font-medium">アプリ内ブラウザではGoogleログインが使用できません</p>
+          <p>Safariで開いてから再度ログインしてください。</p>
+          <p className="text-xs">右下の共有ボタン →「Safariで開く」</p>
+        </div>
+      )}
+
+      {browserState === 'normal' && (
         <>
           <p className="text-zinc-500 dark:text-zinc-400">
             レシートを管理して支出を把握しよう
