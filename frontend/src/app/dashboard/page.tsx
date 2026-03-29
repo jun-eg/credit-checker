@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { AppHeader } from '../../components/AppHeader';
 import { CategoryBarChart } from '../../components/CategoryBarChart';
 import { MonthlyBarChart } from '../../components/MonthlyBarChart';
-import { ChatPanel } from './_components/ChatPanel';
 import { getMonthlySummary, getYearlySummary } from '../../lib/api/receipts';
 
 function formatAmount(amount: number, currency: string): string {
@@ -115,8 +114,6 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        {/* チャット */}
-        <ChatPanel backendToken={session.backendToken} />
       </main>
     </div>
   );
