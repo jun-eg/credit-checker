@@ -77,7 +77,11 @@ jobs:
               "export ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com",
               "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
               "aws ecr get-login-password --region ${{ vars.AWS_REGION }} | docker login --username AWS --password-stdin $ECR_REGISTRY",
+              "sudo yum install -y git || true",
               "cd /home/ec2-user/credit-checker",
+              "git pull origin main",
+              "sudo systemctl stop nginx 2>/dev/null || true",
+              "sudo systemctl disable nginx 2>/dev/null || true",
               "docker compose -f docker-compose.prod.yml pull",
               "docker compose -f docker-compose.prod.yml up -d",
               "docker image prune -f"

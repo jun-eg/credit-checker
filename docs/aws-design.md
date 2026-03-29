@@ -4,19 +4,50 @@
 
 ```
 Internet
-    ↓
+    ↓ HTTPS (443)
 [Route53] → ドメイン管理
     ↓
 [EC2] t3.small
-    └── nginx (80/443)
-          ├── /api/* → NestJS container (:3003)
-          └── /*     → Next.js container (:3000)
+    └── [Docker: nginx]  ← SSL終端（/etc/letsencrypt をホストからマウント）
+          ├── HTTP→HTTPS リダイレクト (80)
+          ├── ACME チャレンジ (/.well-known/acme-challenge/)
+          └── proxy_pass → [Docker: frontend] (:3000)  ← Next.js rewrite
+                                                              ↓
+                                                   [Docker: backend] (:3003)
+    └── [Docker: certbot]  ← 証明書の自動更新（12時間ごと）
     ↓                    ↓
 [RDS] PostgreSQL    [S3] レシート画像
 (Private Subnet)
 ```
 
-> ALBは使用しない。nginx + Certbot (Let's Encrypt) でSSL終端。
+> ALBは使用しない。Docker nginx + Certbot (Let's Encrypt) でSSL終端。
+> frontend / backend は外部ポートを公開せず、nginx 経由でのみアクセス可能。
+
+### nginx ルーティング設定
+
+NestJS のグローバルプレフィックスを `/api/v1` にすることで、NextAuth.js が使用する `/api/auth/*` と名前空間が分離される。
+
+> **EC2 セットアップ時の注意**: EC2 上の `.env` で以下を設定すること。
+> `BACKEND_URL` はコンテナ内からの接続のため Docker サービス名 `backend` を使用する（`localhost` はコンテナ自身を指すため不可）。
+> ```
+> BACKEND_URL=http://backend:3003/api/v1
+> NEXT_PUBLIC_BACKEND_URL=https://<ドメイン>/api/v1
+> ```
+
+```nginx
+# HTTP→HTTPS リダイレクト（ACME チャレンジを除く）
+server {
+    listen 80;
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / { return 301 https://$host$request_uri; }
+}
+
+# HTTPS: Next.js（NextAuth の /api/auth/* を含むすべてのルート）
+server {
+    listen 443 ssl;
+    location / { proxy_pass http://frontend:3000; }
+}
+```
 
 ---
 
@@ -85,9 +116,11 @@ push to main
 ③ frontend Docker ビルド → ECR プッシュ  ┐ 並列実行
 ④ backend Docker ビルド → ECR プッシュ   ┘
     ↓
-⑤ EC2 に SSH
-⑥ docker compose pull
-⑦ docker compose up -d
+⑤ EC2 に SSM セッションマネージャー経由でコマンド送信
+⑥ git pull origin main
+⑦ システム nginx 停止・無効化（冪等）
+⑧ docker compose pull
+⑨ docker compose up -d
 ```
 
 ---
