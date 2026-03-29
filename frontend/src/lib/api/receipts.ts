@@ -11,7 +11,7 @@ import {
 // SSRではNginxを経由しないため、バックエンドコンテナに直接通信する
 const backendUrl =
   typeof window === 'undefined'
-    ? (process.env.BACKEND_URL ?? 'http://localhost:3003/api/v1')
+    ? process.env.BACKEND_URL
     : '/api/backend';
 
 export async function getReceipt(
