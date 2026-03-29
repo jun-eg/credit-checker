@@ -6,7 +6,7 @@ import {
   ListMessagesResponse,
 } from '../../types/chat';
 
-const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:3003';
+const backendUrl = '/api/backend';
 
 async function request<T>(
   path: string,
