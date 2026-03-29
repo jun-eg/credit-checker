@@ -4,19 +4,24 @@
 
 ```
 Internet
-    ↓
+    ↓ HTTPS (443)
 [Route53] → ドメイン管理
     ↓
 [EC2] t3.small
-    └── nginx (80/443)
-          ├── /api/v1/* → NestJS container (:3003)
-          └── /*        → Next.js container (:3000)  ← NextAuth の /api/auth/* も含む
+    └── [Docker: nginx]  ← SSL終端（/etc/letsencrypt をホストからマウント）
+          ├── HTTP→HTTPS リダイレクト (80)
+          ├── ACME チャレンジ (/.well-known/acme-challenge/)
+          └── proxy_pass → [Docker: frontend] (:3000)  ← Next.js rewrite
+                                                              ↓
+                                                   [Docker: backend] (:3003)
+    └── [Docker: certbot]  ← 証明書の自動更新（12時間ごと）
     ↓                    ↓
 [RDS] PostgreSQL    [S3] レシート画像
 (Private Subnet)
 ```
 
-> ALBは使用しない。nginx + Certbot (Let's Encrypt) でSSL終端。
+> ALBは使用しない。Docker nginx + Certbot (Let's Encrypt) でSSL終端。
+> frontend / backend は外部ポートを公開せず、nginx 経由でのみアクセス可能。
 
 ### nginx ルーティング設定
 
@@ -30,14 +35,17 @@ NestJS のグローバルプレフィックスを `/api/v1` にすることで�
 > ```
 
 ```nginx
-# NestJS API
-location /api/v1/ {
-    proxy_pass http://localhost:3003;
+# HTTP→HTTPS リダイレクト（ACME チャレンジを除く）
+server {
+    listen 80;
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / { return 301 https://$host$request_uri; }
 }
 
-# Next.js（NextAuth の /api/auth/* を含むすべてのルート）
-location / {
-    proxy_pass http://localhost:3000;
+# HTTPS: Next.js（NextAuth の /api/auth/* を含むすべてのルート）
+server {
+    listen 443 ssl;
+    location / { proxy_pass http://frontend:3000; }
 }
 ```
 
@@ -108,9 +116,11 @@ push to main
 ③ frontend Docker ビルド → ECR プッシュ  ┐ 並列実行
 ④ backend Docker ビルド → ECR プッシュ   ┘
     ↓
-⑤ EC2 に SSH
-⑥ docker compose pull
-⑦ docker compose up -d
+⑤ EC2 に SSM セッションマネージャー経由でコマンド送信
+⑥ git pull origin main
+⑦ システム nginx 停止・無効化（冪等）
+⑧ docker compose pull
+⑨ docker compose up -d
 ```
 
 ---
