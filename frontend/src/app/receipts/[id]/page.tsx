@@ -23,7 +23,7 @@ export default async function ReceiptDetailPage({ params }: ReceiptDetailPagePro
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
       <AppHeader currentPath="/receipts" />
 
-      <main className="mx-auto max-w-4xl space-y-6 px-6 py-10">
+      <main className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
         <Link
           href="/receipts"
           className="inline-flex items-center gap-1 text-sm text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"

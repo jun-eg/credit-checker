@@ -129,7 +129,7 @@ export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
   }, [uploadState.status]);
 
   return (
-    <div className="rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
+    <div className="rounded-2xl bg-white p-6 shadow-sm sm:p-8 dark:bg-zinc-900">
       <h2 className="mb-6 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
         レシートをアップロード
       </h2>

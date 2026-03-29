@@ -322,7 +322,7 @@ export function ReceiptDetailContent(props: ReceiptDetailContentProps) {
       {/* 商品明細 */}
       {(isEdit || receipt.items.length > 0) && (
         <div className="rounded-2xl bg-white shadow-sm dark:bg-zinc-900">
-          <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4 dark:border-zinc-800">
+          <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-4 sm:px-6 dark:border-zinc-800">
             <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">商品明細</h3>
             {isEdit && (
               <button
@@ -334,6 +334,7 @@ export function ReceiptDetailContent(props: ReceiptDetailContentProps) {
               </button>
             )}
           </div>
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-100 dark:border-zinc-800">
@@ -430,6 +431,7 @@ export function ReceiptDetailContent(props: ReceiptDetailContentProps) {
                   ))}
             </tbody>
           </table>
+          </div>
           {isEdit && items.length === 0 && (
             <p className="py-8 text-center text-sm text-zinc-400 dark:text-zinc-600">
               商品がありません。「商品を追加」で追加してください。
