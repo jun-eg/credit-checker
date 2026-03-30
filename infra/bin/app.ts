@@ -1,0 +1,39 @@
+#!/usr/bin/env node
+import * as cdk from 'aws-cdk-lib';
+import { devConfig } from '../config/dev';
+import { prodConfig } from '../config/prod';
+import { NetworkStack } from '../lib/network/network-stack';
+import { DataStack } from '../lib/data/data-stack';
+import { AppStack } from '../lib/app/app-stack';
+import { EdgeStack } from '../lib/edge/edge-stack';
+
+const app = new cdk.App();
+const targetEnv = app.node.tryGetContext('env') ?? 'dev';
+const config = targetEnv === 'prod' ? prodConfig : devConfig;
+
+const network = new NetworkStack(app, `${config.envName}Network`, {
+  config,
+  env: config.env,
+});
+
+const data = new DataStack(app, `${config.envName}Data`, {
+  config,
+  env: config.env,
+  vpc: network.vpc,
+  rdsSecurityGroup: network.rdsSecurityGroup,
+});
+
+const appStack = new AppStack(app, `${config.envName}App`, {
+  config,
+  env: config.env,
+  vpc: network.vpc,
+  appSecret: data.appSecret,
+  fargateSecurityGroup: network.fargateSecurityGroup,
+});
+
+new EdgeStack(app, `${config.envName}Edge`, {
+  config,
+  env: config.env,
+  frontendService: appStack.frontendService,
+  backendService: appStack.backendService,
+});

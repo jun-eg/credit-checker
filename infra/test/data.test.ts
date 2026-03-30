@@ -1,0 +1,61 @@
+import * as cdk from 'aws-cdk-lib';
+import { Template } from 'aws-cdk-lib/assertions';
+import { devConfig } from '../config/dev';
+import { prodConfig } from '../config/prod';
+import { NetworkStack } from '../lib/network/network-stack';
+import { DataStack } from '../lib/data/data-stack';
+
+function buildDataTemplate(config: typeof devConfig) {
+  const app = new cdk.App();
+  const network = new NetworkStack(app, `${config.envName}Network`, {
+    config,
+    env: config.env,
+  });
+  const data = new DataStack(app, `${config.envName}Data`, {
+    config,
+    env: config.env,
+    vpc: network.vpc,
+    rdsSecurityGroup: network.rdsSecurityGroup,
+  });
+  return Template.fromStack(data);
+}
+
+describe('DataStack - dev', () => {
+  let template: Template;
+
+  beforeAll(() => {
+    template = buildDataTemplate(devConfig);
+  });
+
+  it('dev: RDS が Single-AZ であること（multiAz: false）', () => {
+    template.hasResourceProperties('AWS::RDS::DBInstance', {
+      MultiAZ: false,
+    });
+  });
+
+  it('Secrets Manager のシークレット名が正しいこと', () => {
+    template.hasResourceProperties('AWS::SecretsManager::Secret', {
+      Name: '/credit-checker/dev/app-secrets',
+    });
+  });
+});
+
+describe('DataStack - prod', () => {
+  let template: Template;
+
+  beforeAll(() => {
+    template = buildDataTemplate(prodConfig);
+  });
+
+  it('prod: RDS が Multi-AZ であること（multiAz: true）', () => {
+    template.hasResourceProperties('AWS::RDS::DBInstance', {
+      MultiAZ: true,
+    });
+  });
+
+  it('Secrets Manager のシークレット名が正しいこと', () => {
+    template.hasResourceProperties('AWS::SecretsManager::Secret', {
+      Name: '/credit-checker/prod/app-secrets',
+    });
+  });
+});
