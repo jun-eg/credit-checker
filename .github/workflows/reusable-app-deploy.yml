@@ -1,0 +1,133 @@
+name: Reusable - App Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+    secrets:
+      aws_account_id:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.aws_account_id }}:role/github-actions-deploy-role
+          aws-region: ap-northeast-1
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag
+        id: meta
+        run: echo "tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.aws_account_id }}.dkr.ecr.ap-northeast-1.amazonaws.com/credit-checker-frontend:${{ steps.meta.outputs.tag }}
+            ${{ secrets.aws_account_id }}.dkr.ecr.ap-northeast-1.amazonaws.com/credit-checker-frontend:latest
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          target: runner
+          push: true
+          tags: |
+            ${{ secrets.aws_account_id }}.dkr.ecr.ap-northeast-1.amazonaws.com/credit-checker-backend:${{ steps.meta.outputs.tag }}
+            ${{ secrets.aws_account_id }}.dkr.ecr.ap-northeast-1.amazonaws.com/credit-checker-backend:latest
+
+      - name: Build and push backend-migrator
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          target: migrator
+          push: true
+          tags: |
+            ${{ secrets.aws_account_id }}.dkr.ecr.ap-northeast-1.amazonaws.com/credit-checker-backend-migrator:${{ steps.meta.outputs.tag }}
+
+      - name: Record deploy metadata
+        run: |
+          echo "IMAGE_TAG=${{ steps.meta.outputs.tag }}" >> deploy-record.txt
+          echo "ENVIRONMENT=${{ inputs.environment }}" >> deploy-record.txt
+          echo "TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> deploy-record.txt
+
+      - name: Run migration task
+        id: migration
+        run: |
+          TASK_ARN=$(aws ecs run-task \
+            --cluster credit-checker-${{ inputs.environment }} \
+            --task-definition credit-checker-migrator-${{ inputs.environment }} \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[$(aws ec2 describe-subnets --filters 'Name=tag:Name,Values=*Public*' --query 'Subnets[0].SubnetId' --output text)],securityGroups=[$(aws ec2 describe-security-groups --filters 'Name=tag:Name,Values=*FargateSg*' --query 'SecurityGroups[0].GroupId' --output text)],assignPublicIp=ENABLED}" \
+            --overrides "{\"containerOverrides\":[{\"name\":\"migrator\",\"image\":\"${{ secrets.aws_account_id }}.dkr.ecr.ap-northeast-1.amazonaws.com/credit-checker-backend-migrator:${{ steps.meta.outputs.tag }}\"}]}" \
+            --query 'tasks[0].taskArn' --output text)
+          echo "MIGRATION_TASK_ARN=${TASK_ARN}" >> deploy-record.txt
+          aws ecs wait tasks-stopped --cluster credit-checker-${{ inputs.environment }} --tasks ${TASK_ARN}
+          EXIT_CODE=$(aws ecs describe-tasks --cluster credit-checker-${{ inputs.environment }} --tasks ${TASK_ARN} \
+            --query 'tasks[0].containers[0].exitCode' --output text)
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "Migration failed with exit code ${EXIT_CODE}"
+            exit 1
+          fi
+          echo "MIGRATION_STATUS=success" >> deploy-record.txt
+
+      - name: Update ECS services
+        id: ecs_update
+        run: |
+          FRONTEND_REVISION=$(aws ecs describe-task-definition \
+            --task-definition credit-checker-frontend-${{ inputs.environment }} \
+            --query 'taskDefinition.revision' --output text)
+          BACKEND_REVISION=$(aws ecs describe-task-definition \
+            --task-definition credit-checker-backend-${{ inputs.environment }} \
+            --query 'taskDefinition.revision' --output text)
+
+          echo "FRONTEND_TASK_DEF_REVISION=${FRONTEND_REVISION}" >> deploy-record.txt
+          echo "BACKEND_TASK_DEF_REVISION=${BACKEND_REVISION}" >> deploy-record.txt
+
+          aws ecs update-service \
+            --cluster credit-checker-${{ inputs.environment }} \
+            --service credit-checker-frontend \
+            --force-new-deployment
+
+          aws ecs update-service \
+            --cluster credit-checker-${{ inputs.environment }} \
+            --service credit-checker-backend \
+            --force-new-deployment
+
+      - name: Wait for stable
+        run: |
+          aws ecs wait services-stable \
+            --cluster credit-checker-${{ inputs.environment }} \
+            --services credit-checker-frontend credit-checker-backend
+
+      - name: Rollback on failure
+        if: failure() && steps.ecs_update.outcome == 'success'
+        run: |
+          PREV_FRONTEND=$(( $(grep FRONTEND_TASK_DEF_REVISION deploy-record.txt | cut -d= -f2) - 1 ))
+          PREV_BACKEND=$(( $(grep BACKEND_TASK_DEF_REVISION deploy-record.txt | cut -d= -f2) - 1 ))
+          aws ecs update-service \
+            --cluster credit-checker-${{ inputs.environment }} \
+            --service credit-checker-frontend \
+            --task-definition credit-checker-frontend-${{ inputs.environment }}:${PREV_FRONTEND}
+          aws ecs update-service \
+            --cluster credit-checker-${{ inputs.environment }} \
+            --service credit-checker-backend \
+            --task-definition credit-checker-backend-${{ inputs.environment }}:${PREV_BACKEND}

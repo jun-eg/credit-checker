@@ -1,0 +1,39 @@
+name: Reusable - Infra Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string   # 'dev' or 'prod'
+    secrets:
+      aws_account_id:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.aws_account_id }}:role/github-actions-deploy-role
+          aws-region: ap-northeast-1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: infra/package-lock.json
+
+      - run: npm ci
+        working-directory: infra
+
+      - name: CDK deploy
+        run: npx cdk deploy --all -c env=${{ inputs.environment }} --require-approval never
+        working-directory: infra

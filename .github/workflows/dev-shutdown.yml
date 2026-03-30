@@ -1,0 +1,29 @@
+name: Dev Environment Shutdown
+
+on:
+  schedule:
+    - cron: '0 15 * * *'  # UTC 15:00 = JST 0:00
+
+jobs:
+  shutdown:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.DEV_AWS_ACCOUNT_ID }}:role/github-actions-deploy-role
+          aws-region: ap-northeast-1
+
+      - name: Scale down ECS services
+        run: |
+          aws ecs update-service \
+            --cluster credit-checker-dev \
+            --service credit-checker-frontend \
+            --desired-count 0
+          aws ecs update-service \
+            --cluster credit-checker-dev \
+            --service credit-checker-backend \
+            --desired-count 0
