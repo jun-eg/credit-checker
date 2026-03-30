@@ -1,3 +1,15 @@
+secrets:
+  jwt_secret:
+    file: ./secrets/jwt_secret
+  auth_secret:
+    file: ./secrets/auth_secret
+  auth_google_secret:
+    file: ./secrets/auth_google_secret
+  openai_api_key:
+    file: ./secrets/openai_api_key
+  database_url:
+    file: ./secrets/database_url
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -31,6 +43,57 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: development
+      AWS_REGION: ${AWS_REGION:-ap-northeast-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-test}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-test}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-credit-checker-receipts}
+      S3_ENDPOINT: http://localstack:4566
+      FRONTEND_URL: http://localhost:3000
+    secrets:
+      - jwt_secret
+      - auth_secret
+      - auth_google_secret
+      - openai_api_key
+      - database_url
+    depends_on:
+      postgres:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    ports:
+      - "3000:3000"
+    # /run/secrets/ からファイルを読んで環境変数に変換してから起動
+    entrypoint: "/bin/sh"
+    command:
+      - "-c"
+      - >
+        export AUTH_SECRET=$(cat /run/secrets/auth_secret);
+        export AUTH_GOOGLE_SECRET=$(cat /run/secrets/auth_google_secret);
+        exec node server.js
+    environment:
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID}
+      BACKEND_URL: http://backend:3003/api/v1
+      NEXT_PUBLIC_BACKEND_URL: http://backend:3003/api/v1
+      AUTH_URL: http://localhost:3000
+    secrets:
+      - auth_secret
+      - auth_google_secret
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
