@@ -11,34 +11,39 @@
 
 ## 技術スタック
 
-| 領域           | 技術                        |
-| -------------- | --------------------------- |
-| フロントエンド | Next.js (App Router)        |
-| バックエンド   | NestJS                      |
-| データベース   | PostgreSQL                  |
-| 画像ストレージ | AWS S3                      |
-| 認証           | NextAuth.js（Google OAuth） |
-| LLM            | OpenAI GPT-4o               |
-| デプロイ       | AWS                         |
+| 領域           | 技術                              |
+| -------------- | --------------------------------- |
+| フロントエンド | Next.js (App Router)              |
+| バックエンド   | NestJS                            |
+| データベース   | PostgreSQL（本番: RDS）           |
+| 画像ストレージ | AWS S3（ローカル: LocalStack）    |
+| 認証           | NextAuth.js（Google OAuth）       |
+| LLM            | OpenAI GPT-4o                     |
+| インフラ定義   | AWS CDK (TypeScript)              |
+| デプロイ       | ECS Fargate + GitHub Actions OIDC |
 
 ## ディレクトリ構成
 
 ```
 .
-├── frontend/   # Next.js
-├── backend/    # NestJS
-└── docs/       # 設計書
+├── apps/
+│   ├── frontend/       # Next.js
+│   └── backend/        # NestJS
+├── infra/              # AWS CDK
+├── docs/
+│   ├── adr/            # アーキテクチャ設計判断
+│   ├── architecture/   # システム全体構成
+│   └── runbooks/       # 運用手順
+└── .github/workflows/  # CI/CD
 ```
 
-## 環境構築手順
+## ローカル環境構築
 
 ### 前提条件
 
-- Node.js 20+
 - Docker / Docker Compose
-- AWS アカウント（S3）
-- OpenAI API キー
 - Google OAuth クライアント ID / シークレット
+- OpenAI API キー
 
 ### 1. リポジトリのクローン
 
@@ -53,89 +58,55 @@ cd credit-checker
 cp .env.example .env
 ```
 
-`.env` を編集して各値を設定する。
-
-**ルート `.env`（Docker Compose 用）**
+`.env` を開き、空欄の項目を埋める。変更が必要な値は以下のみ：
 
 ```env
-POSTGRES_USER=credit_checker
-POSTGRES_PASSWORD=your_password
-POSTGRES_DB=credit_checker_db
-DATABASE_URL=postgresql://credit_checker:your_password@localhost:5432/credit_checker_db
+AUTH_GOOGLE_ID=your_google_client_id
 ```
 
-**`frontend/.env.local`（新規作成）**
+### 3. Strong Secret のセットアップ
 
-```env
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your_secret
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-BACKEND_URL=http://localhost:3003
-```
-
-**`backend/.env`（新規作成）**
-
-```env
-DATABASE_URL=postgresql://credit_checker:your_password@localhost:5432/credit_checker_db
-AWS_REGION=ap-northeast-1
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-S3_BUCKET_NAME=your_bucket_name
-OPENAI_API_KEY=your_openai_api_key
-NEXTAUTH_SECRET=your_secret
-```
-
-### 3. データベースの起動
+Docker Compose はシークレットをファイルから読み込む。`secrets/` ディレクトリを作成し、各ファイルに値を書き込む。
 
 ```bash
-docker compose up -d
+mkdir -p secrets
+echo "postgresql://credit_checker:password@postgres:5432/credit_checker_db" > secrets/database_url
+echo "$(openssl rand -base64 32)" > secrets/jwt_secret
+echo "$(openssl rand -base64 32)" > secrets/auth_secret
+echo "your_google_client_secret"                                             > secrets/auth_google_secret
+echo "your_openai_api_key"                                                   > secrets/openai_api_key
 ```
 
-### 4. 依存パッケージのインストール
+> `secrets/` は `.gitignore` に含まれており、リポジトリにはコミットされない。
+
+### 4. 起動
 
 ```bash
-# ルートでまとめてインストール
-npm install
-
-# または個別に
-cd frontend && npm install
-cd ../backend && npm install
+docker compose up
 ```
 
-### 5. アプリケーションの起動
+| サービス   | URL                      |
+| ---------- | ------------------------ |
+| フロントエンド | http://localhost:3000 |
+| バックエンド   | http://localhost:3003 |
+| LocalStack     | http://localhost:4566 |
 
-```bash
-# フロントエンド（localhost:3000）
-npm run dev:frontend
+初回起動時はマイグレーションが自動実行される。
 
-# バックエンド（localhost:3003）
-npm run dev:backend
-```
+## 設定値の3分類
 
-個別に起動する場合：
+`.env.example` の構造と対応している。詳細は [ADR 003](docs/adr/003-secret-three-categories.md) を参照。
 
-```bash
-# フロントエンド
-cd frontend && npm run dev
-
-# バックエンド
-cd backend && npm run start:dev
-```
-
-### 6. コード品質チェック
-
-```bash
-# 全体 Lint
-npm run lint
-
-# フォーマット
-npm run format
-
-# フロントエンド 型チェック
-cd frontend && npm run type-check
-```
+| 分類 | 具体例 | 管理方法 |
+|------|--------|----------|
+| 公開設定 | `NODE_ENV`, `AWS_REGION`, `AUTH_GOOGLE_ID` | `.env` / ECS environment |
+| インフラ設定 | `POSTGRES_*`（ローカルのみ） | `.env`（本番は RDS 自動生成） |
+| Strong Secret | `AUTH_SECRET`, `DATABASE_URL` 等 | `secrets/` ファイル / ECS `secrets:` フィールド |
 
 ## ドキュメント
 
-- [設計書](docs/design.md)
+- [アーキテクチャ概要](docs/architecture/overview.md)
+- [ADR 一覧](docs/adr/)
+- [デプロイ手順](docs/runbooks/deploy.md)
+- [ロールバック手順](docs/runbooks/rollback.md)
+- [ECS Exec 手順](docs/runbooks/ecs-exec.md)
