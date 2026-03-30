@@ -24,6 +24,7 @@ function buildAppTemplate(config: typeof devConfig) {
     vpc: network.vpc,
     appSecret: data.appSecret,
     fargateSecurityGroup: network.fargateSecurityGroup,
+    receiptsBucket: data.receiptsBucket,
   });
   return Template.fromStack(appStack);
 }
@@ -51,10 +52,54 @@ describe('AppStack - dev', () => {
     });
   });
 
-  it('sidecar コンテナが TaskDefinition に含まれていること', () => {
+  it('backend コンテナに DATABASE_URL secret が設定されていること', () => {
     template.hasResourceProperties('AWS::ECS::TaskDefinition', {
       ContainerDefinitions: Match.arrayWith([
-        Match.objectLike({ Name: 'secrets-fetcher' }),
+        Match.objectLike({
+          Name: 'backend',
+          Secrets: Match.arrayWith([
+            Match.objectLike({ Name: 'DATABASE_URL' }),
+          ]),
+        }),
+      ]),
+    });
+  });
+
+  it('backend コンテナに JWT_SECRET secret が設定されていること', () => {
+    template.hasResourceProperties('AWS::ECS::TaskDefinition', {
+      ContainerDefinitions: Match.arrayWith([
+        Match.objectLike({
+          Name: 'backend',
+          Secrets: Match.arrayWith([
+            Match.objectLike({ Name: 'JWT_SECRET' }),
+          ]),
+        }),
+      ]),
+    });
+  });
+
+  it('frontend コンテナに AUTH_SECRET secret が設定されていること', () => {
+    template.hasResourceProperties('AWS::ECS::TaskDefinition', {
+      ContainerDefinitions: Match.arrayWith([
+        Match.objectLike({
+          Name: 'frontend',
+          Secrets: Match.arrayWith([
+            Match.objectLike({ Name: 'AUTH_SECRET' }),
+          ]),
+        }),
+      ]),
+    });
+  });
+
+  it('migrator コンテナに DATABASE_URL secret が設定されていること', () => {
+    template.hasResourceProperties('AWS::ECS::TaskDefinition', {
+      ContainerDefinitions: Match.arrayWith([
+        Match.objectLike({
+          Name: 'migrator',
+          Secrets: Match.arrayWith([
+            Match.objectLike({ Name: 'DATABASE_URL' }),
+          ]),
+        }),
       ]),
     });
   });
