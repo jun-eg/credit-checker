@@ -12,13 +12,23 @@ import { ReceiptItem } from './entities/receipt-item.entity';
 import { User } from './entities/user.entity';
 import { UsersModule } from './users/users.module';
 import { ChatModule } from './chat/chat.module';
+import { secrets } from './config/secrets';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [
+        () => ({
+          JWT_SECRET: secrets.jwtSecret(),
+          OPENAI_API_KEY: secrets.openaiApiKey(),
+          DATABASE_URL: secrets.databaseUrl(),
+        }),
+      ],
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: process.env.DATABASE_URL,
+      url: secrets.databaseUrl(),
       entities: [User, Receipt, ReceiptItem, ChatSession, ChatMessage],
       migrations: ['dist/migrations/*.js'],
       synchronize: false,
