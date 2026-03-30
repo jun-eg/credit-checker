@@ -1,10 +1,10 @@
 import * as cdk from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import * as rds from 'aws-cdk-lib/aws-rds';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 import { EnvironmentConfig } from '../../config';
+import { SecureRds } from '../../constructs/secure-rds';
 
 interface DataStackProps extends cdk.StackProps {
   config: EnvironmentConfig;
@@ -22,18 +22,12 @@ export class DataStack extends cdk.Stack {
     const { config, vpc, rdsSecurityGroup } = props;
     const envLower = config.envName.toLowerCase();
 
-    const dbInstance = new rds.DatabaseInstance(this, 'Postgres', {
-      engine: rds.DatabaseInstanceEngine.postgres({
-        version: rds.PostgresEngineVersion.VER_16,
-      }),
-      instanceType: new ec2.InstanceType(config.rds.instanceType),
+    const rdsConstruct = new SecureRds(this, 'Postgres', {
       vpc,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
-      securityGroups: [rdsSecurityGroup],
+      securityGroup: rdsSecurityGroup,
+      instanceType: config.rds.instanceType,
       multiAz: config.rds.multiAz,
       databaseName: config.rds.databaseName,
-      credentials: rds.Credentials.fromGeneratedSecret('postgres'),
-      removalPolicy: cdk.RemovalPolicy.SNAPSHOT,
     });
 
     // アプリ用 Secrets Manager（strong secrets）
@@ -60,7 +54,7 @@ export class DataStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'DbEndpoint', {
-      value: dbInstance.instanceEndpoint.hostname,
+      value: rdsConstruct.instance.instanceEndpoint.hostname,
     });
     new cdk.CfnOutput(this, 'AppSecretArn', {
       value: this.appSecret.secretArn,
