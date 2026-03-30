@@ -23,7 +23,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ secrets.aws_account_id }}:role/github-actions-deploy-role
-          aws-region: ap-northeast-1
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
@@ -39,8 +39,8 @@ jobs:
           file: apps/frontend/Dockerfile
           push: true
           tags: |
-            ${{ secrets.aws_account_id }}.dkr.ecr.ap-northeast-1.amazonaws.com/credit-checker-frontend:${{ steps.meta.outputs.tag }}
-            ${{ secrets.aws_account_id }}.dkr.ecr.ap-northeast-1.amazonaws.com/credit-checker-frontend:latest
+            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/credit-checker-frontend:${{ steps.meta.outputs.tag }}
+            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/credit-checker-frontend:latest
 
       - name: Build and push backend
         uses: docker/build-push-action@v5
@@ -50,8 +50,8 @@ jobs:
           target: runner
           push: true
           tags: |
-            ${{ secrets.aws_account_id }}.dkr.ecr.ap-northeast-1.amazonaws.com/credit-checker-backend:${{ steps.meta.outputs.tag }}
-            ${{ secrets.aws_account_id }}.dkr.ecr.ap-northeast-1.amazonaws.com/credit-checker-backend:latest
+            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/credit-checker-backend:${{ steps.meta.outputs.tag }}
+            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/credit-checker-backend:latest
 
       - name: Build and push backend-migrator
         uses: docker/build-push-action@v5
@@ -61,7 +61,7 @@ jobs:
           target: migrator
           push: true
           tags: |
-            ${{ secrets.aws_account_id }}.dkr.ecr.ap-northeast-1.amazonaws.com/credit-checker-backend-migrator:${{ steps.meta.outputs.tag }}
+            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/credit-checker-backend-migrator:${{ steps.meta.outputs.tag }}
 
       - name: Record deploy metadata
         run: |
@@ -77,7 +77,7 @@ jobs:
             --task-definition credit-checker-migrator-${{ inputs.environment }} \
             --launch-type FARGATE \
             --network-configuration "awsvpcConfiguration={subnets=[$(aws ec2 describe-subnets --filters 'Name=tag:Name,Values=*Public*' --query 'Subnets[0].SubnetId' --output text)],securityGroups=[$(aws ec2 describe-security-groups --filters 'Name=tag:Name,Values=*FargateSg*' --query 'SecurityGroups[0].GroupId' --output text)],assignPublicIp=ENABLED}" \
-            --overrides "{\"containerOverrides\":[{\"name\":\"migrator\",\"image\":\"${{ secrets.aws_account_id }}.dkr.ecr.ap-northeast-1.amazonaws.com/credit-checker-backend-migrator:${{ steps.meta.outputs.tag }}\"}]}" \
+            --overrides "{\"containerOverrides\":[{\"name\":\"migrator\",\"image\":\"${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/credit-checker-backend-migrator:${{ steps.meta.outputs.tag }}\"}]}" \
             --query 'tasks[0].taskArn' --output text)
           echo "MIGRATION_TASK_ARN=${TASK_ARN}" >> deploy-record.txt
           aws ecs wait tasks-stopped --cluster credit-checker-${{ inputs.environment }} --tasks ${TASK_ARN}

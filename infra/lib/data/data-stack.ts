@@ -1,7 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import * as iam from 'aws-cdk-lib/aws-iam';
 import * as rds from 'aws-cdk-lib/aws-rds';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 import { EnvironmentConfig } from '../../config';
@@ -14,14 +14,13 @@ interface DataStackProps extends cdk.StackProps {
 
 export class DataStack extends cdk.Stack {
   readonly appSecret: secretsmanager.ISecret;
+  readonly receiptsBucket: s3.Bucket;
 
   constructor(scope: Construct, id: string, props: DataStackProps) {
     super(scope, id, props);
 
     const { config, vpc, rdsSecurityGroup } = props;
     const envLower = config.envName.toLowerCase();
-    const region = config.env.region;
-    const account = config.env.account;
 
     const dbInstance = new rds.DatabaseInstance(this, 'Postgres', {
       engine: rds.DatabaseInstanceEngine.postgres({
@@ -32,12 +31,13 @@ export class DataStack extends cdk.Stack {
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       securityGroups: [rdsSecurityGroup],
       multiAz: config.rds.multiAz,
-      databaseName: 'credit_checker',
+      databaseName: config.rds.databaseName,
       credentials: rds.Credentials.fromGeneratedSecret('postgres'),
       removalPolicy: cdk.RemovalPolicy.SNAPSHOT,
     });
 
     // アプリ用 Secrets Manager（strong secrets）
+    // 初回デプロイ後、Secrets Manager コンソールで REPLACE_ME を実際の値に更新すること
     this.appSecret = new secretsmanager.Secret(this, 'AppSecret', {
       secretName: `/credit-checker/${envLower}/app-secrets`,
       description: 'Application secrets for credit-checker',
@@ -46,40 +46,27 @@ export class DataStack extends cdk.Stack {
         auth_secret: cdk.SecretValue.unsafePlainText('REPLACE_ME'),
         auth_google_secret: cdk.SecretValue.unsafePlainText('REPLACE_ME'),
         openai_api_key: cdk.SecretValue.unsafePlainText('REPLACE_ME'),
-        // RDS 接続文字列は RDS シークレットから組み立てる
+        // RDS 接続文字列。初回デプロイ後に RDS エンドポイントを確認して設定する
+        // 形式: postgresql://<user>:<password>@<host>:5432/<dbname>
+        database_url: cdk.SecretValue.unsafePlainText('REPLACE_ME'),
       },
     });
 
-    // ECS Task Execution Role（Secrets Manager 読み取りに使用）
-    const taskExecutionRole = new iam.Role(this, 'TaskExecutionRole', {
-      assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
-      managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName(
-          'service-role/AmazonECSTaskExecutionRolePolicy',
-        ),
-      ],
+    this.receiptsBucket = new s3.Bucket(this, 'ReceiptsBucket', {
+      bucketName: config.s3BucketName,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      encryption: s3.BucketEncryption.S3_MANAGED,
     });
-
-    // Fargate sidecar が Secrets Manager を読めるように付与
-    taskExecutionRole.addToPolicy(
-      new iam.PolicyStatement({
-        actions: ['secretsmanager:GetSecretValue'],
-        resources: [
-          `arn:aws:secretsmanager:${region}:${account}:secret:/credit-checker/${envLower}/*`,
-        ],
-      }),
-    );
-
-    // RDS シークレットも読めるように
-    if (dbInstance.secret) {
-      dbInstance.secret.grantRead(taskExecutionRole);
-    }
 
     new cdk.CfnOutput(this, 'DbEndpoint', {
       value: dbInstance.instanceEndpoint.hostname,
     });
     new cdk.CfnOutput(this, 'AppSecretArn', {
       value: this.appSecret.secretArn,
+    });
+    new cdk.CfnOutput(this, 'BucketName', {
+      value: this.receiptsBucket.bucketName,
     });
   }
 }

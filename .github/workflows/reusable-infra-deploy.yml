@@ -23,7 +23,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ secrets.aws_account_id }}:role/github-actions-deploy-role
-          aws-region: ap-northeast-1
+          aws-region: ${{ vars.AWS_REGION }}
 
       - uses: actions/setup-node@v4
         with:
@@ -37,3 +37,9 @@ jobs:
       - name: CDK deploy
         run: npx cdk deploy --all -c env=${{ inputs.environment }} --require-approval never
         working-directory: infra
+        env:
+          DEV_AWS_ACCOUNT_ID: ${{ secrets.aws_account_id }}
+          PROD_AWS_ACCOUNT_ID: ${{ secrets.aws_account_id }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          AUTH_GOOGLE_ID: ${{ vars.AUTH_GOOGLE_ID }}
+          S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME }}

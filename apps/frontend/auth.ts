@@ -19,7 +19,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, account, profile }) {
       // 初回サインイン時のみバックエンドにupsertしてトークンを取得
       if (account?.provider === 'google' && profile) {
-        const backendUrl = process.env.BACKEND_URL ?? 'http://localhost:3003';
+        const backendUrl = process.env.BACKEND_URL;
         const res = await fetch(`${backendUrl}/auth/upsert`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

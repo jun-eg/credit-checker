@@ -12,8 +12,14 @@ export interface EnvironmentConfig {
   rds: {
     instanceType: string;
     multiAz: boolean;
+    databaseName: string;
   };
   vpc: {
     maxAzs: number;
   };
+  ports: {
+    frontend: number;
+    backend: number;
+  };
+  s3BucketName: string;
 }

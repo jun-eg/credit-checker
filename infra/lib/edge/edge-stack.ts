@@ -21,6 +21,7 @@ export class EdgeStack extends cdk.Stack {
     super(scope, id, props);
 
     const { config, frontendService, backendService } = props;
+    const { ports } = config;
 
     const hostedZone = route53.HostedZone.fromLookup(this, 'HostedZone', {
       domainName: config.domain.split('.').slice(-2).join('.'),
@@ -66,7 +67,7 @@ export class EdgeStack extends cdk.Stack {
     // /api/* → backend
     const backendTargetGroup = new elbv2.ApplicationTargetGroup(this, 'BackendTg', {
       vpc,
-      port: 3003,
+      port: ports.backend,
       protocol: elbv2.ApplicationProtocol.HTTP,
       targets: [backendService],
       healthCheck: {
@@ -84,7 +85,7 @@ export class EdgeStack extends cdk.Stack {
     // /* → frontend
     const frontendTargetGroup = new elbv2.ApplicationTargetGroup(this, 'FrontendTg', {
       vpc,
-      port: 3000,
+      port: ports.frontend,
       protocol: elbv2.ApplicationProtocol.HTTP,
       targets: [frontendService],
       healthCheck: {

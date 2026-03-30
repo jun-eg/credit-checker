@@ -29,6 +29,7 @@ const appStack = new AppStack(app, `${config.envName}App`, {
   vpc: network.vpc,
   appSecret: data.appSecret,
   fargateSecurityGroup: network.fargateSecurityGroup,
+  receiptsBucket: data.receiptsBucket,
 });
 
 new EdgeStack(app, `${config.envName}Edge`, {

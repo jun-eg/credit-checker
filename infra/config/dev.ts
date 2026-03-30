@@ -4,7 +4,7 @@ export const devConfig: EnvironmentConfig = {
   envName: 'Dev',
   env: {
     account: process.env.DEV_AWS_ACCOUNT_ID!,
-    region: 'ap-northeast-1',
+    region: process.env.AWS_REGION!,
   },
   domain: 'dev.jun-eg.site',
   scaling: {
@@ -14,8 +14,14 @@ export const devConfig: EnvironmentConfig = {
   rds: {
     instanceType: 'db.t4g.micro',
     multiAz: false,
+    databaseName: 'credit_checker',
   },
   vpc: {
     maxAzs: 1,
   },
+  ports: {
+    frontend: 3000,
+    backend: 3003,
+  },
+  s3BucketName: process.env.S3_BUCKET_NAME!,
 };

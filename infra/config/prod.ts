@@ -4,7 +4,7 @@ export const prodConfig: EnvironmentConfig = {
   envName: 'Prod',
   env: {
     account: process.env.PROD_AWS_ACCOUNT_ID!,
-    region: 'ap-northeast-1',
+    region: process.env.AWS_REGION!,
   },
   domain: 'jun-eg.site',
   scaling: {
@@ -14,8 +14,14 @@ export const prodConfig: EnvironmentConfig = {
   rds: {
     instanceType: 'db.t4g.micro',
     multiAz: true,
+    databaseName: 'credit_checker',
   },
   vpc: {
     maxAzs: 2,
   },
+  ports: {
+    frontend: 3000,
+    backend: 3003,
+  },
+  s3BucketName: process.env.S3_BUCKET_NAME!,
 };
