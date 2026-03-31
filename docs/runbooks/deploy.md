@@ -16,12 +16,16 @@ aws sts get-caller-identity
 
 ### インフラのみ再デプロイ
 
+`appName` は `infra/cdk.json` の `context.appName`、GitHub Actions では `vars.APP_NAME` で管理。
+
 ```bash
 cd infra
 DEV_AWS_ACCOUNT_ID=<account-id> npx cdk deploy --all -c env=dev --require-approval never
 ```
 
 ### アプリのみ再デプロイ（イメージを指定）
+
+`<app-name>` は `vars.APP_NAME` の値（例: `credit-checker`）を使用。
 
 ```bash
 # ECR ログイン
@@ -30,13 +34,13 @@ aws ecr get-login-password --region ap-northeast-1 | \
 
 # ECS Service 更新（最新イメージで再起動）
 aws ecs update-service \
-  --cluster credit-checker-dev \
-  --service credit-checker-frontend \
+  --cluster <app-name>-dev \
+  --service <app-name>-frontend-dev \
   --force-new-deployment
 
 aws ecs update-service \
-  --cluster credit-checker-dev \
-  --service credit-checker-backend \
+  --cluster <app-name>-dev \
+  --service <app-name>-backend-dev \
   --force-new-deployment
 ```
 
@@ -44,8 +48,8 @@ aws ecs update-service \
 
 ```bash
 aws ecs run-task \
-  --cluster credit-checker-dev \
-  --task-definition credit-checker-migrator-dev \
+  --cluster <app-name>-dev \
+  --task-definition <app-name>-migrator-dev \
   --launch-type FARGATE \
   --network-configuration "awsvpcConfiguration={subnets=[<public-subnet-id>],securityGroups=[<fargate-sg-id>],assignPublicIp=ENABLED}"
 ```

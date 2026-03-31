@@ -39,8 +39,8 @@ jobs:
           file: apps/frontend/Dockerfile
           push: true
           tags: |
-            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/credit-checker-frontend:${{ steps.meta.outputs.tag }}
-            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/credit-checker-frontend:latest
+            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-frontend:${{ steps.meta.outputs.tag }}
+            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-frontend:latest
 
       - name: Build and push backend
         uses: docker/build-push-action@v5
@@ -50,8 +50,8 @@ jobs:
           target: runner
           push: true
           tags: |
-            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/credit-checker-backend:${{ steps.meta.outputs.tag }}
-            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/credit-checker-backend:latest
+            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-backend:${{ steps.meta.outputs.tag }}
+            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-backend:latest
 
       - name: Build and push backend-migrator
         uses: docker/build-push-action@v5
@@ -61,7 +61,7 @@ jobs:
           target: migrator
           push: true
           tags: |
-            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/credit-checker-backend-migrator:${{ steps.meta.outputs.tag }}
+            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-backend-migrator:${{ steps.meta.outputs.tag }}
 
       - name: Record deploy metadata
         run: |
@@ -73,15 +73,15 @@ jobs:
         id: migration
         run: |
           TASK_ARN=$(aws ecs run-task \
-            --cluster credit-checker-${{ inputs.environment }} \
-            --task-definition credit-checker-migrator-${{ inputs.environment }} \
+            --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
+            --task-definition ${{ vars.APP_NAME }}-migrator-${{ inputs.environment }} \
             --launch-type FARGATE \
             --network-configuration "awsvpcConfiguration={subnets=[$(aws ec2 describe-subnets --filters 'Name=tag:Name,Values=*Public*' --query 'Subnets[0].SubnetId' --output text)],securityGroups=[$(aws ec2 describe-security-groups --filters 'Name=tag:Name,Values=*FargateSg*' --query 'SecurityGroups[0].GroupId' --output text)],assignPublicIp=ENABLED}" \
-            --overrides "{\"containerOverrides\":[{\"name\":\"migrator\",\"image\":\"${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/credit-checker-backend-migrator:${{ steps.meta.outputs.tag }}\"}]}" \
+            --overrides "{\"containerOverrides\":[{\"name\":\"migrator\",\"image\":\"${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-backend-migrator:${{ steps.meta.outputs.tag }}\"}]}" \
             --query 'tasks[0].taskArn' --output text)
           echo "MIGRATION_TASK_ARN=${TASK_ARN}" >> deploy-record.txt
-          aws ecs wait tasks-stopped --cluster credit-checker-${{ inputs.environment }} --tasks ${TASK_ARN}
-          EXIT_CODE=$(aws ecs describe-tasks --cluster credit-checker-${{ inputs.environment }} --tasks ${TASK_ARN} \
+          aws ecs wait tasks-stopped --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} --tasks ${TASK_ARN}
+          EXIT_CODE=$(aws ecs describe-tasks --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} --tasks ${TASK_ARN} \
             --query 'tasks[0].containers[0].exitCode' --output text)
           if [ "$EXIT_CODE" != "0" ]; then
             echo "Migration failed with exit code ${EXIT_CODE}"
@@ -93,30 +93,30 @@ jobs:
         id: ecs_update
         run: |
           FRONTEND_REVISION=$(aws ecs describe-task-definition \
-            --task-definition credit-checker-frontend-${{ inputs.environment }} \
+            --task-definition ${{ vars.APP_NAME }}-frontend-${{ inputs.environment }} \
             --query 'taskDefinition.revision' --output text)
           BACKEND_REVISION=$(aws ecs describe-task-definition \
-            --task-definition credit-checker-backend-${{ inputs.environment }} \
+            --task-definition ${{ vars.APP_NAME }}-backend-${{ inputs.environment }} \
             --query 'taskDefinition.revision' --output text)
 
           echo "FRONTEND_TASK_DEF_REVISION=${FRONTEND_REVISION}" >> deploy-record.txt
           echo "BACKEND_TASK_DEF_REVISION=${BACKEND_REVISION}" >> deploy-record.txt
 
           aws ecs update-service \
-            --cluster credit-checker-${{ inputs.environment }} \
-            --service credit-checker-frontend \
+            --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
+            --service ${{ vars.APP_NAME }}-frontend-${{ inputs.environment }} \
             --force-new-deployment
 
           aws ecs update-service \
-            --cluster credit-checker-${{ inputs.environment }} \
-            --service credit-checker-backend \
+            --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
+            --service ${{ vars.APP_NAME }}-backend-${{ inputs.environment }} \
             --force-new-deployment
 
       - name: Wait for stable
         run: |
           aws ecs wait services-stable \
-            --cluster credit-checker-${{ inputs.environment }} \
-            --services credit-checker-frontend credit-checker-backend
+            --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
+            --services ${{ vars.APP_NAME }}-frontend-${{ inputs.environment }} ${{ vars.APP_NAME }}-backend-${{ inputs.environment }}
 
       - name: Rollback on failure
         if: failure() && steps.ecs_update.outcome == 'success'
@@ -124,10 +124,10 @@ jobs:
           PREV_FRONTEND=$(( $(grep FRONTEND_TASK_DEF_REVISION deploy-record.txt | cut -d= -f2) - 1 ))
           PREV_BACKEND=$(( $(grep BACKEND_TASK_DEF_REVISION deploy-record.txt | cut -d= -f2) - 1 ))
           aws ecs update-service \
-            --cluster credit-checker-${{ inputs.environment }} \
-            --service credit-checker-frontend \
-            --task-definition credit-checker-frontend-${{ inputs.environment }}:${PREV_FRONTEND}
+            --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
+            --service ${{ vars.APP_NAME }}-frontend-${{ inputs.environment }} \
+            --task-definition ${{ vars.APP_NAME }}-frontend-${{ inputs.environment }}:${PREV_FRONTEND}
           aws ecs update-service \
-            --cluster credit-checker-${{ inputs.environment }} \
-            --service credit-checker-backend \
-            --task-definition credit-checker-backend-${{ inputs.environment }}:${PREV_BACKEND}
+            --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
+            --service ${{ vars.APP_NAME }}-backend-${{ inputs.environment }} \
+            --task-definition ${{ vars.APP_NAME }}-backend-${{ inputs.environment }}:${PREV_BACKEND}

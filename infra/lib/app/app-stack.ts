@@ -10,6 +10,7 @@ import { EnvironmentConfig } from '../../config';
 import { FargateService } from '../../constructs/fargate-service';
 
 interface AppStackProps extends cdk.StackProps {
+  appName: string;
   config: EnvironmentConfig;
   vpc: ec2.Vpc;
   appSecret: secretsmanager.ISecret;
@@ -24,12 +25,12 @@ export class AppStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: AppStackProps) {
     super(scope, id, props);
 
-    const { config, vpc, appSecret, fargateSecurityGroup, receiptsBucket } = props;
+    const { appName, config, vpc, appSecret, fargateSecurityGroup, receiptsBucket } = props;
     const envLower = config.envName.toLowerCase();
 
     const cluster = new ecs.Cluster(this, 'Cluster', {
       vpc,
-      clusterName: `credit-checker-${envLower}`,
+      clusterName: `${appName}-${envLower}`,
     });
 
     const taskExecutionRole = new iam.Role(this, 'TaskExecutionRole', {
@@ -52,15 +53,15 @@ export class AppStack extends cdk.Stack {
 
     // --- ECR リポジトリ ---
     const frontendRepo = new ecr.Repository(this, 'FrontendRepo', {
-      repositoryName: 'credit-checker-frontend',
+      repositoryName: `${appName}-frontend`,
     });
 
     const backendRepo = new ecr.Repository(this, 'BackendRepo', {
-      repositoryName: 'credit-checker-backend',
+      repositoryName: `${appName}-backend`,
     });
 
     new ecr.Repository(this, 'MigratorRepo', {
-      repositoryName: 'credit-checker-backend-migrator',
+      repositoryName: `${appName}-backend-migrator`,
     });
 
     // --- Frontend Task Definition ---
@@ -128,7 +129,7 @@ export class AppStack extends cdk.Stack {
 
     migratorTask.addContainer('migrator', {
       image: ecs.ContainerImage.fromEcrRepository(
-        ecr.Repository.fromRepositoryName(this, 'MigratorRepoRef', 'credit-checker-backend-migrator'),
+        ecr.Repository.fromRepositoryName(this, 'MigratorRepoRef', `${appName}-backend-migrator`),
         'latest',
       ),
       essential: true,
@@ -140,6 +141,7 @@ export class AppStack extends cdk.Stack {
 
     // --- ECS Services ---
     const frontendFargate = new FargateService(this, 'FrontendService', {
+      serviceName: `${appName}-frontend-${envLower}`,
       cluster,
       taskDefinition: frontendTask,
       securityGroup: fargateSecurityGroup,
@@ -149,6 +151,7 @@ export class AppStack extends cdk.Stack {
     });
 
     const backendFargate = new FargateService(this, 'BackendService', {
+      serviceName: `${appName}-backend-${envLower}`,
       cluster,
       taskDefinition: backendTask,
       securityGroup: fargateSecurityGroup,

@@ -4,6 +4,7 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import { Construct } from 'constructs';
 
 interface FargateServiceProps {
+  serviceName: string;
   cluster: ecs.Cluster;
   taskDefinition: ecs.FargateTaskDefinition;
   securityGroup: ec2.SecurityGroup;
@@ -18,10 +19,11 @@ export class FargateService extends Construct {
   constructor(scope: Construct, id: string, props: FargateServiceProps) {
     super(scope, id);
 
-    const { cluster, taskDefinition, securityGroup, minCapacity, maxCapacity, desiredCount } =
+    const { serviceName, cluster, taskDefinition, securityGroup, minCapacity, maxCapacity, desiredCount } =
       props;
 
     this.service = new ecs.FargateService(this, 'Service', {
+      serviceName,
       cluster,
       taskDefinition,
       desiredCount,

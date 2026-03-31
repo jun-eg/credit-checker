@@ -6,6 +6,8 @@ import { NetworkStack } from '../lib/network/network-stack';
 import { DataStack } from '../lib/data/data-stack';
 import { AppStack } from '../lib/app/app-stack';
 
+const TEST_APP_NAME = 'test-app';
+
 function buildAppTemplate(config: typeof devConfig) {
   const app = new cdk.App();
   const network = new NetworkStack(app, `${config.envName}Network`, {
@@ -19,6 +21,7 @@ function buildAppTemplate(config: typeof devConfig) {
     rdsSecurityGroup: network.rdsSecurityGroup,
   });
   const appStack = new AppStack(app, `${config.envName}App`, {
+    appName: TEST_APP_NAME,
     config,
     env: config.env,
     vpc: network.vpc,
@@ -101,6 +104,18 @@ describe('AppStack - dev', () => {
           ]),
         }),
       ]),
+    });
+  });
+
+  it('frontend ECS Service の ServiceName が appName と env から生成されること', () => {
+    template.hasResourceProperties('AWS::ECS::Service', {
+      ServiceName: `${TEST_APP_NAME}-frontend-dev`,
+    });
+  });
+
+  it('backend ECS Service の ServiceName が appName と env から生成されること', () => {
+    template.hasResourceProperties('AWS::ECS::Service', {
+      ServiceName: `${TEST_APP_NAME}-backend-dev`,
     });
   });
 });

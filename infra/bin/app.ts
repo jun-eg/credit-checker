@@ -11,6 +11,9 @@ const app = new cdk.App();
 const targetEnv = app.node.tryGetContext('env') ?? 'dev';
 const config = targetEnv === 'prod' ? prodConfig : devConfig;
 
+const appName = app.node.tryGetContext('appName') as string | undefined;
+if (!appName) throw new Error('CDK context "appName" is required. Pass -c appName=<name>');
+
 const network = new NetworkStack(app, `${config.envName}Network`, {
   config,
   env: config.env,
@@ -24,6 +27,7 @@ const data = new DataStack(app, `${config.envName}Data`, {
 });
 
 const appStack = new AppStack(app, `${config.envName}App`, {
+  appName,
   config,
   env: config.env,
   vpc: network.vpc,
