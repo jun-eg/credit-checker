@@ -53,11 +53,16 @@ export class NetworkStack extends cdk.Stack {
       // 最小権限：明示的に許可したアウトバウンドのみ許可
       allowAllOutbound: false,
     });
-    // ALB からのトラフィックのみ受け入れる
+    // ALB からのトラフィックのみ受け入れる（frontend / backend のアプリポートに限定）
     this.fargateSecurityGroup.addIngressRule(
       ec2.Peer.securityGroupId(this.albSecurityGroup.securityGroupId),
-      ec2.Port.allTraffic(),
-      'Allow traffic from ALB',
+      ec2.Port.tcp(config.ports.frontend),
+      'Allow frontend traffic from ALB',
+    );
+    this.fargateSecurityGroup.addIngressRule(
+      ec2.Peer.securityGroupId(this.albSecurityGroup.securityGroupId),
+      ec2.Port.tcp(config.ports.backend),
+      'Allow backend traffic from ALB',
     );
     // HTTPS アウトバウンド（ECR / Secrets Manager / AWS API）
     this.fargateSecurityGroup.addEgressRule(
