@@ -85,7 +85,6 @@ graph TB
     Internet([Internet]) --> ALB2
     ALB2 --> FE2
     ALB2 --> BE2
-    FE2 -->|5432| RDS2
     BE2 -->|5432| RDS2
 ```
 

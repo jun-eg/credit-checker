@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -22,19 +22,23 @@ import { secrets } from './config/secrets';
         () => ({
           JWT_SECRET: secrets.jwtSecret(),
           OPENAI_API_KEY: secrets.openaiApiKey(),
+          DATABASE_SSL: process.env.DATABASE_SSL,
           // DATABASE_URL は TypeOrmModule が secrets.databaseUrl() で直接取得するため登録不要
         }),
       ],
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      url: secrets.databaseUrl(),
-      entities: [User, Receipt, ReceiptItem, ChatSession, ChatMessage],
-      migrations: ['dist/migrations/*.js'],
-      synchronize: false,
-      logging: process.env.NODE_ENV === 'development',
-      // SSL有無はインフラ(app-stack.ts)が DATABASE_SSL で注入する。アプリコードに環境差異を持ち込まない
-      ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+    TypeOrmModule.forRootAsync({
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        url: secrets.databaseUrl(),
+        entities: [User, Receipt, ReceiptItem, ChatSession, ChatMessage],
+        migrations: ['dist/migrations/*.js'],
+        synchronize: false,
+        logging: process.env.NODE_ENV === 'development',
+        // SSL有無はインフラ(app-stack.ts)が DATABASE_SSL で注入する。アプリコードに環境差異を持ち込まない
+        ssl: config.get<string>('DATABASE_SSL') === 'true' ? { rejectUnauthorized: false } : false,
+      }),
+      inject: [ConfigService],
     }),
     AuthModule,
     UsersModule,

@@ -16,7 +16,7 @@ aws sts get-caller-identity
 
 ### インフラのみ再デプロイ
 
-`appName` は `infra/cdk.json` の `context.appName`、GitHub Actions では `vars.APP_NAME` で管理。
+`appName` は CDK context の実行時引数 `-c appName=<app-name>` で渡す。GitHub Actions では `vars.APP_NAME` で管理。
 
 ```bash
 cd infra
