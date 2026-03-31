@@ -34,8 +34,8 @@ export class DataStack extends cdk.Stack {
     // アプリ用 Secrets Manager（strong secrets）
     // 初回デプロイ後、Secrets Manager コンソールで REPLACE_ME を実際の値に更新すること
     this.appSecret = new secretsmanager.Secret(this, 'AppSecret', {
-      secretName: `/credit-checker/${envLower}/app-secrets`,
-      description: 'Application secrets for credit-checker',
+      secretName: `/${appName}/${envLower}/app-secrets`,
+      description: `Application secrets for ${appName}`,
       secretObjectValue: {
         jwt_secret: cdk.SecretValue.unsafePlainText('REPLACE_ME'),
         auth_secret: cdk.SecretValue.unsafePlainText('REPLACE_ME'),

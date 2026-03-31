@@ -43,7 +43,7 @@ graph TB
 
 ```
 AWS Secrets Manager
-  └─ /credit-checker/{env}/app-secrets  ※ {env} は小文字（dev / prod）
+  └─ /{app-name}/{env}/app-secrets  ※ {env} は小文字（dev / prod）
         ↓ ECS タスク起動時に secrets: フィールドで注入
   コンテナの環境変数（JWT_SECRET, AUTH_SECRET, DATABASE_URL ...）
         ↓
