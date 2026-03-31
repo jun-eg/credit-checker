@@ -125,6 +125,7 @@ export class AppStack extends cdk.Stack {
       portMappings: [{ containerPort: config.ports.frontend }],
       environment: {
         NODE_ENV: config.nodeEnv,
+        FRONTEND_PORT: String(config.ports.frontend),
         AUTH_GOOGLE_ID: config.authGoogleId,
         BACKEND_URL: `https://${config.domain}/api/v1`,
         NEXT_PUBLIC_BACKEND_URL: `https://${config.domain}/api/v1`,
@@ -171,7 +172,7 @@ export class AppStack extends cdk.Stack {
       portMappings: [{ containerPort: config.ports.backend }],
       environment: {
         NODE_ENV: config.nodeEnv,
-        PORT: String(config.ports.backend),
+        BACKEND_PORT: String(config.ports.backend),
         DATABASE_SSL: String(config.databaseSsl),
         TYPEORM_LOGGING: String(config.typeormLogging),
         AWS_REGION: config.env.region,

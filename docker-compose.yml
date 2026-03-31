@@ -49,7 +49,7 @@ services:
       context: .
       dockerfile: apps/backend/Dockerfile
     ports:
-      - "3003:3003"
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
     # /run/secrets/ からファイルを読んで環境変数に変換してから起動
     entrypoint: "/bin/sh"
     command:
@@ -61,7 +61,7 @@ services:
         exec node dist/main
     environment:
       NODE_ENV: ${NODE_ENV}
-      PORT: ${PORT}
+      BACKEND_PORT: ${BACKEND_PORT}
       DATABASE_SSL: ${DATABASE_SSL}
       TYPEORM_LOGGING: ${TYPEORM_LOGGING}
       AWS_REGION: ${AWS_REGION}
@@ -85,7 +85,7 @@ services:
       context: .
       dockerfile: apps/frontend/Dockerfile
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     # /run/secrets/ からファイルを読んで環境変数に変換してから起動
     entrypoint: "/bin/sh"
     command:
@@ -93,8 +93,10 @@ services:
       - >
         export AUTH_SECRET=$(cat /run/secrets/auth_secret);
         export AUTH_GOOGLE_SECRET=$(cat /run/secrets/auth_google_secret);
+        export PORT=${FRONTEND_PORT};
         exec node server.js
     environment:
+      FRONTEND_PORT: ${FRONTEND_PORT}
       AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID}
       BACKEND_URL: ${BACKEND_URL}
       NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
