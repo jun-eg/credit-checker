@@ -69,7 +69,7 @@ NetworkStack が SG を所有し、利用するスタック（DataStack / AppSta
 | 分類 | 具体例 | 管理方法 |
 |------|--------|----------|
 | 公開設定 | `NODE_ENV`, `AWS_REGION`, `AUTH_GOOGLE_ID`, `FRONTEND_URL`, `BACKEND_URL`, `NEXT_PUBLIC_BACKEND_URL`, `AUTH_URL`, `DATABASE_SSL`, `TYPEORM_LOGGING`, `S3_BUCKET_NAME` | ECS `environment:` に平文 |
-| インフラ設定 | `POSTGRES_USER`, `POSTGRES_PASSWORD`（ローカルのみ） | `.env` で管理 |
+| インフラ設定 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `S3_ENDPOINT`（ローカルのみ） | `.env` で管理 |
 | Strong Secret | `AUTH_SECRET`, `AUTH_GOOGLE_SECRET`, `DATABASE_URL`, `JWT_SECRET`, `OPENAI_API_KEY` | Secrets Manager → ECS `secrets:` フィールドで環境変数注入 |
 
 ECS `secrets:` フィールドを使うことで、値はタスク定義 JSON・CloudFormation テンプレート・CDK 出力に残らない。
