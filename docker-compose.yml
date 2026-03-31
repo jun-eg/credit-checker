@@ -61,6 +61,7 @@ services:
         exec node dist/main
     environment:
       NODE_ENV: ${NODE_ENV}
+      PORT: ${PORT}
       DATABASE_SSL: ${DATABASE_SSL}
       TYPEORM_LOGGING: ${TYPEORM_LOGGING}
       AWS_REGION: ${AWS_REGION}

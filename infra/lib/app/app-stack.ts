@@ -171,6 +171,7 @@ export class AppStack extends cdk.Stack {
       portMappings: [{ containerPort: config.ports.backend }],
       environment: {
         NODE_ENV: config.nodeEnv,
+        PORT: String(config.ports.backend),
         DATABASE_SSL: String(config.databaseSsl),
         TYPEORM_LOGGING: String(config.typeormLogging),
         AWS_REGION: config.env.region,
