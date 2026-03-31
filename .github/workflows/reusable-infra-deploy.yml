@@ -42,4 +42,3 @@ jobs:
           PROD_AWS_ACCOUNT_ID: ${{ secrets.aws_account_id }}
           AWS_REGION: ${{ vars.AWS_REGION }}
           AUTH_GOOGLE_ID: ${{ vars.AUTH_GOOGLE_ID }}
-          S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME }}

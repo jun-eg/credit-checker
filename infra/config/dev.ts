@@ -23,6 +23,6 @@ export const devConfig: EnvironmentConfig = {
     frontend: 3000,
     backend: 3003,
   },
-  s3BucketName: process.env.S3_BUCKET_NAME!,
+  s3BucketName: 'credit-checker-dev-receipts',
   authGoogleId: process.env.AUTH_GOOGLE_ID!,
 };
