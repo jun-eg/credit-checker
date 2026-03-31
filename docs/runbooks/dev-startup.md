@@ -4,8 +4,7 @@
 
 ## GitHub Actions から起動
 
-リポジトリの Actions タブ → 「Dev Environment Shutdown」ワークフローを参考に、
-起動用ワークフローを手動トリガーする（別途 `dev-startup.yml` を作成する場合）。
+リポジトリの Actions タブ → 「Dev Environment Startup」ワークフロー → 「Run workflow」で手動トリガーする。
 
 ## AWS CLI から起動
 

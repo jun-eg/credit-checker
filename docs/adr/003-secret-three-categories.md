@@ -18,7 +18,7 @@
 
 | 分類 | 具体例 | 管理方法 |
 |------|--------|----------|
-| **公開設定** | `NODE_ENV`, `AWS_REGION`, `FRONTEND_URL`, `AUTH_GOOGLE_ID` | ECS タスク定義の `environment:` に平文で渡す |
+| **公開設定** | `NODE_ENV`, `AWS_REGION`, `FRONTEND_URL`, `AUTH_GOOGLE_ID`, `DATABASE_SSL` | ECS タスク定義の `environment:` に平文で渡す |
 | **インフラ設定** | `POSTGRES_USER`, `POSTGRES_PASSWORD`（ローカルのみ） | ローカルは `.env`、本番は RDS 自動生成シークレット |
 | **Strong Secret** | `AUTH_SECRET`, `AUTH_GOOGLE_SECRET`, `DATABASE_URL`, `JWT_SECRET`, `OPENAI_API_KEY` | Secrets Manager に登録し、ECS `secrets:` フィールドで環境変数として注入する |
 
@@ -38,10 +38,12 @@ Docker Compose の `secrets:` ブロックでファイルマウントし、フ�
 ```yaml
 # docker-compose.yml
 frontend:
-  entrypoint: "/bin/sh -c"
-  command: >
-    export AUTH_SECRET=$(cat /run/secrets/auth_secret) &&
-    exec node server.js
+  entrypoint: "/bin/sh"
+  command:
+    - "-c"
+    - >
+      export AUTH_SECRET=$(cat /run/secrets/auth_secret);
+      exec node server.js
 ```
 
 本番（ECS）との差異はこの変換処理のみであり、アプリコード自体には環境差異を持ち込まない。

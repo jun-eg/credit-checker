@@ -33,8 +33,8 @@ import { secrets } from './config/secrets';
       migrations: ['dist/migrations/*.js'],
       synchronize: false,
       logging: process.env.NODE_ENV === 'development',
-      // RDS はSSL必須。証明書チェーンの検証はスキップ（AWS管理の自己署名CA）
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      // SSL有無はインフラ(app-stack.ts)が DATABASE_SSL で注入する。アプリコードに環境差異を持ち込まない
+      ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
     }),
     AuthModule,
     UsersModule,

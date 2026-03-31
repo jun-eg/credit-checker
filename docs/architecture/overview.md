@@ -43,7 +43,7 @@ graph TB
 
 ```
 AWS Secrets Manager
-  └─ /credit-checker/{env}/app-secrets
+  └─ /credit-checker/{env}/app-secrets  ※ {env} は小文字（dev / prod）
         ↓ ECS タスク起動時に secrets: フィールドで注入
   コンテナの環境変数（JWT_SECRET, AUTH_SECRET, DATABASE_URL ...）
         ↓
@@ -63,7 +63,7 @@ GitHub Push (develop → dev / main → prod)
     3. deploy-app: apps/ 変更時
         a. Docker build & push → ECR
         b. migration task 実行（完了待機）
-        c. ECS Service 更新（force-new-deployment）
+        c. ECS Service 更新（新しいタスク定義 ARN を --task-definition で指定）
         d. services-stable 待機
         e. 失敗時は前リビジョンへ自動 rollback
 ```

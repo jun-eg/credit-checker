@@ -1,0 +1,34 @@
+name: Dev Environment Startup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  startup:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.DEV_AWS_ACCOUNT_ID }}:role/github-actions-deploy-role
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Scale up ECS services
+        run: |
+          aws ecs update-service \
+            --cluster ${{ vars.APP_NAME }}-dev \
+            --service ${{ vars.APP_NAME }}-frontend-dev \
+            --desired-count 1
+          aws ecs update-service \
+            --cluster ${{ vars.APP_NAME }}-dev \
+            --service ${{ vars.APP_NAME }}-backend-dev \
+            --desired-count 1
+
+      - name: Wait for services to be stable
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ vars.APP_NAME }}-dev \
+            --services ${{ vars.APP_NAME }}-frontend-dev ${{ vars.APP_NAME }}-backend-dev
