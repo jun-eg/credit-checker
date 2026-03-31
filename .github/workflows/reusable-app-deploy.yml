@@ -62,6 +62,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-backend-migrator:${{ steps.meta.outputs.tag }}
+            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-backend-migrator:latest
 
       - name: Record deploy metadata
         run: |
