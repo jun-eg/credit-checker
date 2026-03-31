@@ -86,6 +86,18 @@ npm run dev
 
 初回起動時はマイグレーションが自動実行される。
 
+## npm スクリプト
+
+| コマンド | 動作 |
+|---------|------|
+| `npm run dev` | ローカル環境を起動（setup.sh + docker compose up） |
+| `npm run down` | ローカル環境を停止 |
+| `npm run logs` | ログをリアルタイム表示 |
+| `npm run ps` | サービスの状態確認 |
+| `npm run install` | frontend / backend の依存パッケージをインストール |
+| `npm run lint` | frontend / backend の lint を実行 |
+| `npm run format` | コードフォーマット |
+
 ## 設定値の3分類
 
 `.env.example` の構造と対応している。詳細は [ADR 003](docs/adr/003-secret-three-categories.md) を参照。
