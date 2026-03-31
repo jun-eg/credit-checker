@@ -3,6 +3,19 @@ name: Deploy
 on:
   push:
     branches: [develop, main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'デプロイ先環境'
+        required: true
+        type: choice
+        options: [dev, prod]
+      deploy_target:
+        description: 'デプロイ対象'
+        required: true
+        type: choice
+        options: [all, infra, apps]
+        default: all
 
 # reusable workflow が OIDC (id-token: write) を使うため、呼び出し側でも明示が必要
 permissions:
@@ -14,14 +27,16 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      infra: ${{ steps.filter.outputs.infra }}
-      apps:  ${{ steps.filter.outputs.apps }}
-      env:   ${{ steps.env.outputs.name }}
+      infra: ${{ steps.result.outputs.infra }}
+      apps:  ${{ steps.result.outputs.apps }}
+      env:   ${{ steps.result.outputs.env }}
     steps:
       - uses: actions/checkout@v4
 
+      # push イベント時のみパスフィルターで変更検知
       - uses: dorny/paths-filter@v3
         id: filter
+        if: github.event_name == 'push'
         with:
           filters: |
             infra:
@@ -29,13 +44,22 @@ jobs:
             apps:
               - 'apps/**'
 
-      - name: Set environment name
-        id: env
+      - name: Set outputs
+        id: result
         run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "name=prod" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TARGET="${{ inputs.deploy_target }}"
+            echo "infra=$( [ "$TARGET" = "all" ] || [ "$TARGET" = "infra" ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
+            echo "apps=$( [ "$TARGET" = "all" ] || [ "$TARGET" = "apps" ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
+            echo "env=${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
           else
-            echo "name=dev" >> "$GITHUB_OUTPUT"
+            echo "infra=${{ steps.filter.outputs.infra }}" >> "$GITHUB_OUTPUT"
+            echo "apps=${{ steps.filter.outputs.apps }}" >> "$GITHUB_OUTPUT"
+            if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              echo "env=prod" >> "$GITHUB_OUTPUT"
+            else
+              echo "env=dev" >> "$GITHUB_OUTPUT"
+            fi
           fi
 
   # インフラデプロイ - dev（infra/ に変更がある場合のみ）
