@@ -76,7 +76,7 @@ export class AppStack extends cdk.Stack {
       image: ecs.ContainerImage.fromEcrRepository(frontendRepo, 'latest'),
       portMappings: [{ containerPort: config.ports.frontend }],
       environment: {
-        AUTH_GOOGLE_ID: process.env.AUTH_GOOGLE_ID!,
+        AUTH_GOOGLE_ID: config.authGoogleId,
         BACKEND_URL: `https://${config.domain}/api/v1`,
         NEXT_PUBLIC_BACKEND_URL: `https://${config.domain}/api/v1`,
         AUTH_URL: `https://${config.domain}`,

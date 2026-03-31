@@ -24,4 +24,5 @@ export const prodConfig: EnvironmentConfig = {
     backend: 3003,
   },
   s3BucketName: process.env.S3_BUCKET_NAME!,
+  authGoogleId: process.env.AUTH_GOOGLE_ID!,
 };
