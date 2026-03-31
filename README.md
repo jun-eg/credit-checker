@@ -71,7 +71,7 @@ cp .env.example .env
 ### 3. 起動
 
 ```bash
-make up
+npm run dev
 ```
 
 初回は `setup.sh` が自動で実行され、`.env` の値から `secrets/` ファイルを生成してから Docker Compose が起動する。2回目以降は既存の `secrets/` をスキップしてそのまま起動する。

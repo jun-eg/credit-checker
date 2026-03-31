@@ -5,10 +5,10 @@
 ```bash
 cp .env.example .env
 # .env を編集: AUTH_GOOGLE_SECRET と OPENAI_API_KEY を外部サービスから取得して設定
-make up
+npm run dev
 ```
 
-`make up` は初回に `setup.sh` を自動実行して `secrets/` ファイルを生成してから起動する。
+`npm run dev` は初回に `setup.sh` を自動実行して `secrets/` ファイルを生成してから起動する。
 2回目以降は既存の `secrets/` をスキップしてそのまま起動する。
 `DATABASE_URL` は `POSTGRES_*` 変数から自動組み立てするため `.env` への記載は不要。
 

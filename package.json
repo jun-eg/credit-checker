@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "install": "npm install --prefix apps/frontend && npm install --prefix apps/backend",
+    "dev": "make up",
     "dev:frontend": "npm run dev --prefix apps/frontend",
     "dev:backend": "npm run start:dev --prefix apps/backend",
     "lint": "npm run lint --prefix apps/frontend && npm run lint --prefix apps/backend",
