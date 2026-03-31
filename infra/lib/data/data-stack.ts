@@ -16,6 +16,12 @@ interface DataStackProps extends cdk.StackProps {
 export class DataStack extends cdk.Stack {
   readonly appSecret: secretsmanager.ISecret;
   readonly appBucket: s3.Bucket;
+  /** RDS が自動生成した認証情報シークレット（username / password / host / port / dbname） */
+  readonly rdsSecret: secretsmanager.ISecret;
+  /** CDK デプロイ時に自動生成される JWT 署名シークレット */
+  readonly jwtSecret: secretsmanager.Secret;
+  /** CDK デプロイ時に自動生成される NextAuth シークレット */
+  readonly authSecret: secretsmanager.Secret;
 
   constructor(scope: Construct, id: string, props: DataStackProps) {
     super(scope, id, props);
@@ -31,19 +37,34 @@ export class DataStack extends cdk.Stack {
       databaseName: config.rds.databaseName,
     });
 
-    // アプリ用 Secrets Manager（strong secrets）
-    // 初回デプロイ後、Secrets Manager コンソールで REPLACE_ME を実際の値に更新すること
+    this.rdsSecret = rdsConstruct.instance.secret!;
+
+    // デプロイ時に自動生成。以降の再デプロイでは上書きされない
+    this.jwtSecret = new secretsmanager.Secret(this, 'JwtSecret', {
+      secretName: `/${appName}/${envLower}/jwt-secret`,
+      description: `JWT signing secret for ${appName} (auto-generated)`,
+      generateSecretString: {
+        excludePunctuation: true,
+        passwordLength: 64,
+      },
+    });
+
+    this.authSecret = new secretsmanager.Secret(this, 'AuthSecret', {
+      secretName: `/${appName}/${envLower}/auth-secret`,
+      description: `NextAuth secret for ${appName} (auto-generated)`,
+      generateSecretString: {
+        excludePunctuation: true,
+        passwordLength: 64,
+      },
+    });
+
+    // 外部サービス依存のシークレット（初回デプロイ後に手動で REPLACE_ME を更新すること）
     this.appSecret = new secretsmanager.Secret(this, 'AppSecret', {
       secretName: `/${appName}/${envLower}/app-secrets`,
-      description: `Application secrets for ${appName}`,
+      description: `External service secrets for ${appName}`,
       secretObjectValue: {
-        jwt_secret: cdk.SecretValue.unsafePlainText('REPLACE_ME'),
-        auth_secret: cdk.SecretValue.unsafePlainText('REPLACE_ME'),
         auth_google_secret: cdk.SecretValue.unsafePlainText('REPLACE_ME'),
         openai_api_key: cdk.SecretValue.unsafePlainText('REPLACE_ME'),
-        // RDS 接続文字列。初回デプロイ後に RDS エンドポイントを確認して設定する
-        // 形式: postgresql://<user>:<password>@<host>:5432/<dbname>
-        database_url: cdk.SecretValue.unsafePlainText('REPLACE_ME'),
       },
     });
 

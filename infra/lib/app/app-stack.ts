@@ -14,6 +14,12 @@ interface AppStackProps extends cdk.StackProps {
   config: EnvironmentConfig;
   vpc: ec2.Vpc;
   appSecret: secretsmanager.ISecret;
+  /** RDS 自動生成認証情報（username / password / host / port / dbname） */
+  rdsSecret: secretsmanager.ISecret;
+  /** CDK 自動生成 JWT 署名シークレット */
+  jwtSecret: secretsmanager.ISecret;
+  /** CDK 自動生成 NextAuth シークレット */
+  authSecret: secretsmanager.ISecret;
   fargateSecurityGroup: ec2.SecurityGroup;
   appBucket: s3.IBucket;
 }
@@ -25,7 +31,7 @@ export class AppStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: AppStackProps) {
     super(scope, id, props);
 
-    const { appName, config, vpc, appSecret, fargateSecurityGroup, appBucket } = props;
+    const { appName, config, vpc, appSecret, rdsSecret, jwtSecret, authSecret, fargateSecurityGroup, appBucket } = props;
     const envLower = config.envName.toLowerCase();
 
     const cluster = new ecs.Cluster(this, 'Cluster', {
@@ -47,6 +53,8 @@ export class AppStack extends cdk.Stack {
         actions: ['secretsmanager:GetSecretValue'],
         resources: [
           `arn:aws:secretsmanager:${config.env.region}:${config.env.account}:secret:/${appName}/${envLower}/*`,
+          // RDS 自動生成シークレットは /{appName}/{envLower}/ 配下に存在しないため個別に許可
+          rdsSecret.secretArn,
         ],
       }),
     );
@@ -132,7 +140,7 @@ export class AppStack extends cdk.Stack {
         AUTH_URL: `https://${config.domain}`,
       },
       secrets: {
-        AUTH_SECRET: ecs.Secret.fromSecretsManager(appSecret, 'auth_secret'),
+        AUTH_SECRET: ecs.Secret.fromSecretsManager(authSecret),
         AUTH_GOOGLE_SECRET: ecs.Secret.fromSecretsManager(appSecret, 'auth_google_secret'),
       },
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'frontend' }),
@@ -170,6 +178,11 @@ export class AppStack extends cdk.Stack {
       // このlatestはCDK初回デプロイ時のプレースホルダーであり、実運用では使われない。
       image: ecs.ContainerImage.fromEcrRepository(backendRepo, 'latest'),
       portMappings: [{ containerPort: config.ports.backend }],
+      // RDS 認証情報から DATABASE_URL を組み立ててから起動する
+      entryPoint: ['/bin/sh', '-c'],
+      command: [
+        'export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"; exec node dist/main',
+      ],
       environment: {
         NODE_ENV: config.nodeEnv,
         BACKEND_PORT: String(config.ports.backend),
@@ -180,9 +193,13 @@ export class AppStack extends cdk.Stack {
         FRONTEND_URL: `https://${config.domain}`,
       },
       secrets: {
-        JWT_SECRET: ecs.Secret.fromSecretsManager(appSecret, 'jwt_secret'),
+        JWT_SECRET: ecs.Secret.fromSecretsManager(jwtSecret),
         OPENAI_API_KEY: ecs.Secret.fromSecretsManager(appSecret, 'openai_api_key'),
-        DATABASE_URL: ecs.Secret.fromSecretsManager(appSecret, 'database_url'),
+        DB_USER: ecs.Secret.fromSecretsManager(rdsSecret, 'username'),
+        DB_PASSWORD: ecs.Secret.fromSecretsManager(rdsSecret, 'password'),
+        DB_HOST: ecs.Secret.fromSecretsManager(rdsSecret, 'host'),
+        DB_PORT: ecs.Secret.fromSecretsManager(rdsSecret, 'port'),
+        DB_NAME: ecs.Secret.fromSecretsManager(rdsSecret, 'dbname'),
       },
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'backend' }),
     });
@@ -203,12 +220,21 @@ export class AppStack extends cdk.Stack {
         'latest',
       ),
       essential: true,
+      // RDS 認証情報から DATABASE_URL を組み立ててからマイグレーションを実行する
+      entryPoint: ['/bin/sh', '-c'],
+      command: [
+        'export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"; exec sh run-migration.sh',
+      ],
       environment: {
         NODE_ENV: config.nodeEnv,
         DATABASE_SSL: String(config.databaseSsl),
       },
       secrets: {
-        DATABASE_URL: ecs.Secret.fromSecretsManager(appSecret, 'database_url'),
+        DB_USER: ecs.Secret.fromSecretsManager(rdsSecret, 'username'),
+        DB_PASSWORD: ecs.Secret.fromSecretsManager(rdsSecret, 'password'),
+        DB_HOST: ecs.Secret.fromSecretsManager(rdsSecret, 'host'),
+        DB_PORT: ecs.Secret.fromSecretsManager(rdsSecret, 'port'),
+        DB_NAME: ecs.Secret.fromSecretsManager(rdsSecret, 'dbname'),
       },
       logging: ecs.LogDrivers.awsLogs({ streamPrefix: 'migrator' }),
     });

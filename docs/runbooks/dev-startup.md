@@ -1,5 +1,20 @@
 # Dev 環境の手動起動手順
 
+## ローカル開発環境の初回セットアップ
+
+```bash
+cp .env.example .env
+# .env を編集: AUTH_GOOGLE_SECRET と OPENAI_API_KEY を外部サービスから取得して設定
+# JWT_SECRET / AUTH_SECRET は未設定なら setup.sh が自動生成する
+./setup.sh
+docker compose up
+```
+
+`setup.sh` は `.env` の値を読み取り、`secrets/` ファイルを自動生成する。
+`DATABASE_URL` は `POSTGRES_*` 変数から自動組み立てするため `.env` への記載は不要。
+
+---
+
 夜間停止（JST 0:00）後に dev 環境を手動で起動する手順。
 
 ## GitHub Actions から起動

@@ -33,6 +33,9 @@ const appStack = new AppStack(app, `${config.envName}App`, {
   env: config.env,
   vpc: network.vpc,
   appSecret: data.appSecret,
+  rdsSecret: data.rdsSecret,
+  jwtSecret: data.jwtSecret,
+  authSecret: data.authSecret,
   fargateSecurityGroup: network.fargateSecurityGroup,
   appBucket: data.appBucket,
 });

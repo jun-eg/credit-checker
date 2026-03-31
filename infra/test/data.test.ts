@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import { Template } from 'aws-cdk-lib/assertions';
+import { Template, Match } from 'aws-cdk-lib/assertions';
 import { devConfig } from '../config/dev';
 import { prodConfig } from '../config/prod';
 import { NetworkStack } from '../lib/network/network-stack';
@@ -36,9 +36,23 @@ describe('DataStack - dev', () => {
     });
   });
 
-  it('Secrets Manager のシークレット名が正しいこと', () => {
+  it('app-secrets のシークレット名が正しいこと', () => {
     template.hasResourceProperties('AWS::SecretsManager::Secret', {
-      Name: '/credit-checker/dev/app-secrets',
+      Name: `/${TEST_APP_NAME}/dev/app-secrets`,
+    });
+  });
+
+  it('jwt-secret が自動生成設定で作成されること', () => {
+    template.hasResourceProperties('AWS::SecretsManager::Secret', {
+      Name: `/${TEST_APP_NAME}/dev/jwt-secret`,
+      GenerateSecretString: Match.objectLike({ ExcludePunctuation: true }),
+    });
+  });
+
+  it('auth-secret が自動生成設定で作成されること', () => {
+    template.hasResourceProperties('AWS::SecretsManager::Secret', {
+      Name: `/${TEST_APP_NAME}/dev/auth-secret`,
+      GenerateSecretString: Match.objectLike({ ExcludePunctuation: true }),
     });
   });
 });
@@ -56,9 +70,9 @@ describe('DataStack - prod', () => {
     });
   });
 
-  it('Secrets Manager のシークレット名が正しいこと', () => {
+  it('app-secrets のシークレット名が正しいこと', () => {
     template.hasResourceProperties('AWS::SecretsManager::Secret', {
-      Name: '/credit-checker/prod/app-secrets',
+      Name: `/${TEST_APP_NAME}/prod/app-secrets`,
     });
   });
 });

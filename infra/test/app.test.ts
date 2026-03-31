@@ -27,6 +27,9 @@ function buildAppTemplate(config: typeof devConfig) {
     env: config.env,
     vpc: network.vpc,
     appSecret: data.appSecret,
+    rdsSecret: data.rdsSecret,
+    jwtSecret: data.jwtSecret,
+    authSecret: data.authSecret,
     fargateSecurityGroup: network.fargateSecurityGroup,
     appBucket: data.appBucket,
   });
@@ -56,13 +59,14 @@ describe('AppStack - dev', () => {
     });
   });
 
-  it('backend コンテナに DATABASE_URL secret が設定されていること', () => {
+  it('backend コンテナに RDS 認証情報 secret が設定されていること', () => {
     template.hasResourceProperties('AWS::ECS::TaskDefinition', {
       ContainerDefinitions: Match.arrayWith([
         Match.objectLike({
           Name: 'backend',
           Secrets: Match.arrayWith([
-            Match.objectLike({ Name: 'DATABASE_URL' }),
+            Match.objectLike({ Name: 'DB_HOST' }),
+            Match.objectLike({ Name: 'DB_PORT' }),
           ]),
         }),
       ]),
@@ -95,13 +99,14 @@ describe('AppStack - dev', () => {
     });
   });
 
-  it('migrator コンテナに DATABASE_URL secret が設定されていること', () => {
+  it('migrator コンテナに RDS 認証情報 secret が設定されていること', () => {
     template.hasResourceProperties('AWS::ECS::TaskDefinition', {
       ContainerDefinitions: Match.arrayWith([
         Match.objectLike({
           Name: 'migrator',
           Secrets: Match.arrayWith([
-            Match.objectLike({ Name: 'DATABASE_URL' }),
+            Match.objectLike({ Name: 'DB_HOST' }),
+            Match.objectLike({ Name: 'DB_PORT' }),
           ]),
         }),
       ]),
