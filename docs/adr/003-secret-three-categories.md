@@ -37,12 +37,23 @@ Docker Compose の `secrets:` ブロックでファイルマウントし、フ�
 
 ```yaml
 # docker-compose.yml
+backend:
+  entrypoint: "/bin/sh"
+  command:
+    - "-c"
+    - >
+      export JWT_SECRET=$(cat /run/secrets/jwt_secret);
+      export OPENAI_API_KEY=$(cat /run/secrets/openai_api_key);
+      export DATABASE_URL=$(cat /run/secrets/database_url);
+      exec node dist/main
+
 frontend:
   entrypoint: "/bin/sh"
   command:
     - "-c"
     - >
       export AUTH_SECRET=$(cat /run/secrets/auth_secret);
+      export AUTH_GOOGLE_SECRET=$(cat /run/secrets/auth_google_secret);
       exec node server.js
 ```
 

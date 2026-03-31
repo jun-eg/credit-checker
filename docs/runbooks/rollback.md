@@ -32,6 +32,16 @@ aws ecs wait services-stable \
 
 CDK は CloudFormation Stack をデプロイしているため、Stack 単位で前のテンプレートに戻す。
 
+インフラは 4 スタック（`ProdNetwork` / `ProdData` / `ProdApp` / `ProdEdge`）で構成されるが、
+CDK ロールバックの現実的な対象は **`ProdApp` のみ**。
+
+| スタック | ロールバックの現実性 |
+|---------|-------------------|
+| `ProdNetwork` | VPC・SG の巻き戻しはネットワーク全体に影響するため実施しない。変更頻度も極めて低い |
+| `ProdData` | RDS の設定変更は DB ロールバック手順（本 runbook の「DB Rollback」）で対処する |
+| `ProdApp` | ECS タスク定義・サービス設定はデプロイのたびに変わるため、ここが主体 |
+| `ProdEdge` | ALB・CloudFront は初回構築後ほぼ変更しない。CloudFront は変更反映に時間がかかり緊急ロールバックに不向き |
+
 ```bash
 # CloudFormation コンソールから対象 Stack を選択 → 「スタックの操作」→「ドリフトの検出」で差分を確認
 

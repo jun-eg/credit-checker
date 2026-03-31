@@ -52,7 +52,7 @@ NetworkStack → DataStack → AppStack → EdgeStack
 | スタック | 責務 | 他スタックへの提供 |
 |---------|------|--------------------|
 | NetworkStack | VPC・サブネット・Security Group | vpc, albSg, fargateSg, rdsSg |
-| DataStack | RDS・Secrets Manager・S3 | appSecret, receiptsBucket |
+| DataStack | RDS・Secrets Manager・S3 | appSecret, appBucket |
 | AppStack | ECR・ECS Cluster・TaskDef・Service | frontendService, backendService |
 | EdgeStack | ACM・ALB・CloudFront・Route53 | （出力のみ） |
 
@@ -89,9 +89,14 @@ Secret の読み込み方式を例に取ると：
 - **ローカル（docker compose）**: `entrypoint` でファイル（`/run/secrets/`）を読んで環境変数に変換してから起動
 
 アプリコード（`secrets.ts`）は `process.env.DATABASE_URL` を読むだけ。
-環境ごとの分岐はない。
+環境名（`NODE_ENV` 等）による分岐はない。
 
-この原則は 12-factor app の思想（設定を環境変数で渡す）と整合し、
+この原則は 12-factor app の思想と整合する。
+
+- **Factor III（設定）**: 設定は環境変数として渡す。コードに環境名をハードコードしない
+- **Factor IV（バッキングサービス）**: ローカルの LocalStack も本番の AWS S3 も「アタッチ可能な S3 互換リソース」として扱う。URL（`S3_ENDPOINT`）が設定されていれば向き先を変えるだけであり、アプリが環境を判定しているわけではない
+
+`S3_ENDPOINT` の有無による `S3Client` の向き先切り替えはこの思想の正しい適用であり、環境差異の混入ではない。
 フレームワーク・SDK（Next Auth v5 / Prisma / OpenAI SDK）が環境変数を前提としている事実とも一致する。
 
 ### 許容例外：`next.config.ts` の rewrites
@@ -124,3 +129,5 @@ ECS:     ブラウザ → ALB → backend サービス
 migration を先行実行することで、アプリの更新前にスキーマ変更を確定させる。
 `services-stable` を待つことで、ヘルスチェック失敗を検知してから rollback できる。
 これにより、不完全なデプロイが本番に残り続けるリスクを排除する。
+
+CDK インフラのロールバック戦略（対象スタックの選択根拠を含む）は `docs/runbooks/rollback.md` を参照。
