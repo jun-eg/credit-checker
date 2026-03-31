@@ -47,11 +47,21 @@ fi
 # DATABASE_URL は POSTGRES_* から組み立て（docker compose 内部ネットワーク向け）
 DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
 
-# secrets/ ファイルを生成（末尾改行なし）
-printf "%s" "$JWT_SECRET"         > "$SECRETS_DIR/jwt_secret"
-printf "%s" "$AUTH_SECRET"        > "$SECRETS_DIR/auth_secret"
-printf "%s" "$AUTH_GOOGLE_SECRET" > "$SECRETS_DIR/auth_google_secret"
-printf "%s" "$OPENAI_API_KEY"     > "$SECRETS_DIR/openai_api_key"
-printf "%s" "$DATABASE_URL"       > "$SECRETS_DIR/database_url"
+# secrets/ ファイルを生成（既存ファイルは上書きしない）
+write_secret() {
+  local file="$SECRETS_DIR/$1"
+  local value="$2"
+  if [ -f "$file" ]; then
+    echo "INFO: $file は既に存在するためスキップします。"
+  else
+    printf "%s" "$value" > "$file"
+  fi
+}
 
-echo "secrets/ ファイルを生成しました。docker compose up で起動できます。"
+write_secret jwt_secret         "$JWT_SECRET"
+write_secret auth_secret        "$AUTH_SECRET"
+write_secret auth_google_secret "$AUTH_GOOGLE_SECRET"
+write_secret openai_api_key     "$OPENAI_API_KEY"
+write_secret database_url       "$DATABASE_URL"
+
+echo "secrets/ ファイルの準備が完了しました。"

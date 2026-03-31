@@ -68,22 +68,15 @@ cp .env.example .env
 
 `JWT_SECRET` / `AUTH_SECRET` はダミー値のままで動作するため変更不要。
 
-### 3. secrets/ ファイルの自動生成
+### 3. 起動
 
 ```bash
-./setup.sh
+make up
 ```
 
-`.env` の値を読み取り、Docker Compose が必要とする `secrets/` ファイルを自動生成する。
-`DATABASE_URL` は `POSTGRES_*` 変数から自動組み立てされる。
+初回は `setup.sh` が自動で実行され、`.env` の値から `secrets/` ファイルを生成してから Docker Compose が起動する。2回目以降は既存の `secrets/` をスキップしてそのまま起動する。
 
 > `secrets/` は `.gitignore` に含まれており、リポジトリにはコミットされない。
-
-### 4. 起動
-
-```bash
-docker compose up
-```
 
 | サービス   | URL                      |
 | ---------- | ------------------------ |

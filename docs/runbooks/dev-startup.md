@@ -5,12 +5,11 @@
 ```bash
 cp .env.example .env
 # .env を編集: AUTH_GOOGLE_SECRET と OPENAI_API_KEY を外部サービスから取得して設定
-# JWT_SECRET / AUTH_SECRET は未設定なら setup.sh が自動生成する
-./setup.sh
-docker compose up
+make up
 ```
 
-`setup.sh` は `.env` の値を読み取り、`secrets/` ファイルを自動生成する。
+`make up` は初回に `setup.sh` を自動実行して `secrets/` ファイルを生成してから起動する。
+2回目以降は既存の `secrets/` をスキップしてそのまま起動する。
 `DATABASE_URL` は `POSTGRES_*` 変数から自動組み立てするため `.env` への記載は不要。
 
 ---
