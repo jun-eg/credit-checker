@@ -61,6 +61,8 @@ services:
         exec node dist/main
     environment:
       NODE_ENV: ${NODE_ENV}
+      DATABASE_SSL: ${DATABASE_SSL}
+      TYPEORM_LOGGING: ${TYPEORM_LOGGING}
       AWS_REGION: ${AWS_REGION}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
