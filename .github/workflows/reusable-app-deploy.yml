@@ -40,7 +40,6 @@ jobs:
           push: true
           tags: |
             ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-frontend:${{ steps.meta.outputs.tag }}
-            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-frontend:latest
 
       - name: Build and push backend
         uses: docker/build-push-action@v5
@@ -51,7 +50,6 @@ jobs:
           push: true
           tags: |
             ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-backend:${{ steps.meta.outputs.tag }}
-            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-backend:latest
 
       - name: Build and push backend-migrator
         uses: docker/build-push-action@v5
@@ -62,7 +60,51 @@ jobs:
           push: true
           tags: |
             ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-backend-migrator:${{ steps.meta.outputs.tag }}
-            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-backend-migrator:latest
+
+      - name: Register task definitions with SHA tag
+        id: register_tasks
+        run: |
+          ECR_BASE="${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com"
+          SHA="${{ steps.meta.outputs.tag }}"
+          APP="${{ vars.APP_NAME }}"
+          ENV="${{ inputs.environment }}"
+
+          register_task_def() {
+            local FAMILY="$1"
+            local IMAGE_URI="$2"
+
+            # CDK管理のタスク定義（環境変数・シークレット設定）を取得し、imageだけSHAタグに差し替える
+            TASK_DEF=$(aws ecs describe-task-definition \
+              --task-definition "${FAMILY}" \
+              --query 'taskDefinition' \
+              --output json | jq 'del(
+                .taskDefinitionArn,
+                .revision,
+                .status,
+                .requiresAttributes,
+                .placementConstraints,
+                .compatibilities,
+                .registeredAt,
+                .registeredBy
+              )')
+
+            NEW_DEF=$(echo "$TASK_DEF" | jq \
+              --arg IMAGE "$IMAGE_URI" \
+              '.containerDefinitions[0].image = $IMAGE')
+
+            aws ecs register-task-definition \
+              --cli-input-json "$NEW_DEF" \
+              --query 'taskDefinition.taskDefinitionArn' \
+              --output text
+          }
+
+          FRONTEND_ARN=$(register_task_def "${APP}-frontend-${ENV}" "${ECR_BASE}/${APP}-frontend:${SHA}")
+          BACKEND_ARN=$(register_task_def  "${APP}-backend-${ENV}"  "${ECR_BASE}/${APP}-backend:${SHA}")
+          MIGRATOR_ARN=$(register_task_def "${APP}-migrator-${ENV}" "${ECR_BASE}/${APP}-backend-migrator:${SHA}")
+
+          echo "FRONTEND_ARN=${FRONTEND_ARN}" >> "$GITHUB_OUTPUT"
+          echo "BACKEND_ARN=${BACKEND_ARN}"   >> "$GITHUB_OUTPUT"
+          echo "MIGRATOR_ARN=${MIGRATOR_ARN}" >> "$GITHUB_OUTPUT"
 
       - name: Record deploy metadata
         run: |
@@ -73,16 +115,28 @@ jobs:
       - name: Run migration task
         id: migration
         run: |
+          SUBNET_ID=$(aws ec2 describe-subnets \
+            --filters 'Name=tag:Name,Values=*Public*' \
+            --query 'Subnets[0].SubnetId' --output text)
+          SG_ID=$(aws ec2 describe-security-groups \
+            --filters 'Name=tag:Name,Values=*FargateSg*' \
+            --query 'SecurityGroups[0].GroupId' --output text)
+
           TASK_ARN=$(aws ecs run-task \
             --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
-            --task-definition ${{ vars.APP_NAME }}-migrator-${{ inputs.environment }} \
+            --task-definition "${{ steps.register_tasks.outputs.MIGRATOR_ARN }}" \
             --launch-type FARGATE \
-            --network-configuration "awsvpcConfiguration={subnets=[$(aws ec2 describe-subnets --filters 'Name=tag:Name,Values=*Public*' --query 'Subnets[0].SubnetId' --output text)],securityGroups=[$(aws ec2 describe-security-groups --filters 'Name=tag:Name,Values=*FargateSg*' --query 'SecurityGroups[0].GroupId' --output text)],assignPublicIp=ENABLED}" \
-            --overrides "{\"containerOverrides\":[{\"name\":\"migrator\",\"image\":\"${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-backend-migrator:${{ steps.meta.outputs.tag }}\"}]}" \
+            --network-configuration "awsvpcConfiguration={subnets=[${SUBNET_ID}],securityGroups=[${SG_ID}],assignPublicIp=ENABLED}" \
             --query 'tasks[0].taskArn' --output text)
+
           echo "MIGRATION_TASK_ARN=${TASK_ARN}" >> deploy-record.txt
-          aws ecs wait tasks-stopped --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} --tasks ${TASK_ARN}
-          EXIT_CODE=$(aws ecs describe-tasks --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} --tasks ${TASK_ARN} \
+          aws ecs wait tasks-stopped \
+            --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
+            --tasks "${TASK_ARN}"
+
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
+            --tasks "${TASK_ARN}" \
             --query 'tasks[0].containers[0].exitCode' --output text)
           if [ "$EXIT_CODE" != "0" ]; then
             echo "Migration failed with exit code ${EXIT_CODE}"
@@ -93,25 +147,31 @@ jobs:
       - name: Update ECS services
         id: ecs_update
         run: |
-          FRONTEND_REVISION=$(aws ecs describe-task-definition \
-            --task-definition ${{ vars.APP_NAME }}-frontend-${{ inputs.environment }} \
-            --query 'taskDefinition.revision' --output text)
-          BACKEND_REVISION=$(aws ecs describe-task-definition \
-            --task-definition ${{ vars.APP_NAME }}-backend-${{ inputs.environment }} \
-            --query 'taskDefinition.revision' --output text)
+          APP="${{ vars.APP_NAME }}"
+          ENV="${{ inputs.environment }}"
 
-          echo "FRONTEND_TASK_DEF_REVISION=${FRONTEND_REVISION}" >> deploy-record.txt
-          echo "BACKEND_TASK_DEF_REVISION=${BACKEND_REVISION}" >> deploy-record.txt
+          # ロールバック用にupdate-service前の現在のタスク定義ARNを保存
+          PREV_FRONTEND_ARN=$(aws ecs describe-services \
+            --cluster "${APP}-${ENV}" \
+            --services "${APP}-frontend-${ENV}" \
+            --query 'services[0].taskDefinition' --output text)
+          PREV_BACKEND_ARN=$(aws ecs describe-services \
+            --cluster "${APP}-${ENV}" \
+            --services "${APP}-backend-${ENV}" \
+            --query 'services[0].taskDefinition' --output text)
+
+          echo "PREV_FRONTEND_ARN=${PREV_FRONTEND_ARN}" >> "$GITHUB_OUTPUT"
+          echo "PREV_BACKEND_ARN=${PREV_BACKEND_ARN}"   >> "$GITHUB_OUTPUT"
 
           aws ecs update-service \
-            --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
-            --service ${{ vars.APP_NAME }}-frontend-${{ inputs.environment }} \
-            --force-new-deployment
+            --cluster "${APP}-${ENV}" \
+            --service "${APP}-frontend-${ENV}" \
+            --task-definition "${{ steps.register_tasks.outputs.FRONTEND_ARN }}"
 
           aws ecs update-service \
-            --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
-            --service ${{ vars.APP_NAME }}-backend-${{ inputs.environment }} \
-            --force-new-deployment
+            --cluster "${APP}-${ENV}" \
+            --service "${APP}-backend-${ENV}" \
+            --task-definition "${{ steps.register_tasks.outputs.BACKEND_ARN }}"
 
       - name: Wait for stable
         run: |
@@ -122,13 +182,15 @@ jobs:
       - name: Rollback on failure
         if: failure() && steps.ecs_update.outcome == 'success'
         run: |
-          PREV_FRONTEND=$(( $(grep FRONTEND_TASK_DEF_REVISION deploy-record.txt | cut -d= -f2) - 1 ))
-          PREV_BACKEND=$(( $(grep BACKEND_TASK_DEF_REVISION deploy-record.txt | cut -d= -f2) - 1 ))
+          APP="${{ vars.APP_NAME }}"
+          ENV="${{ inputs.environment }}"
+
           aws ecs update-service \
-            --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
-            --service ${{ vars.APP_NAME }}-frontend-${{ inputs.environment }} \
-            --task-definition ${{ vars.APP_NAME }}-frontend-${{ inputs.environment }}:${PREV_FRONTEND}
+            --cluster "${APP}-${ENV}" \
+            --service "${APP}-frontend-${ENV}" \
+            --task-definition "${{ steps.ecs_update.outputs.PREV_FRONTEND_ARN }}"
+
           aws ecs update-service \
-            --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
-            --service ${{ vars.APP_NAME }}-backend-${{ inputs.environment }} \
-            --task-definition ${{ vars.APP_NAME }}-backend-${{ inputs.environment }}:${PREV_BACKEND}
+            --cluster "${APP}-${ENV}" \
+            --service "${APP}-backend-${ENV}" \
+            --task-definition "${{ steps.ecs_update.outputs.PREV_BACKEND_ARN }}"

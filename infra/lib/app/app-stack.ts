@@ -51,6 +51,33 @@ export class AppStack extends cdk.Stack {
       }),
     );
 
+    // github-actions-deploy-roleはCDK外で管理されているためfromRoleArnで参照
+    const deployRole = iam.Role.fromRoleArn(
+      this,
+      'DeployRole',
+      `arn:aws:iam::${config.env.account}:role/github-actions-deploy-role`,
+    );
+
+    // CIがregister-task-definitionでSHAタグのリビジョンを登録するために必要な権限
+    deployRole.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        actions: [
+          'ecs:RegisterTaskDefinition',
+          'ecs:DescribeTaskDefinition',
+          'ecs:DescribeServices',
+        ],
+        resources: ['*'],
+      }),
+    );
+
+    // register-task-definitionでexecutionRoleを渡すために必要
+    deployRole.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        actions: ['iam:PassRole'],
+        resources: [taskExecutionRole.roleArn],
+      }),
+    );
+
     // --- ECR リポジトリ ---
     const frontendRepo = new ecr.Repository(this, 'FrontendRepo', {
       repositoryName: `${appName}-frontend`,
@@ -73,6 +100,8 @@ export class AppStack extends cdk.Stack {
     });
 
     frontendTask.addContainer('frontend', {
+      // CI（reusable-app-deploy.yml）がデプロイ時にSHAタグで register-task-definition を実行する。
+      // このlatestはCDK初回デプロイ時のプレースホルダーであり、実運用では使われない。
       image: ecs.ContainerImage.fromEcrRepository(frontendRepo, 'latest'),
       portMappings: [{ containerPort: config.ports.frontend }],
       environment: {
@@ -104,6 +133,8 @@ export class AppStack extends cdk.Stack {
     });
 
     backendTask.addContainer('backend', {
+      // CI（reusable-app-deploy.yml）がデプロイ時にSHAタグで register-task-definition を実行する。
+      // このlatestはCDK初回デプロイ時のプレースホルダーであり、実運用では使われない。
       image: ecs.ContainerImage.fromEcrRepository(backendRepo, 'latest'),
       portMappings: [{ containerPort: config.ports.backend }],
       environment: {
@@ -129,6 +160,8 @@ export class AppStack extends cdk.Stack {
     });
 
     migratorTask.addContainer('migrator', {
+      // CI（reusable-app-deploy.yml）がデプロイ時にSHAタグで register-task-definition を実行する。
+      // このlatestはCDK初回デプロイ時のプレースホルダーであり、実運用では使われない。
       image: ecs.ContainerImage.fromEcrRepository(
         ecr.Repository.fromRepositoryName(this, 'MigratorRepoRef', `${appName}-backend-migrator`),
         'latest',
