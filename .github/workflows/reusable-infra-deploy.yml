@@ -35,7 +35,7 @@ jobs:
         working-directory: infra
 
       - name: CDK deploy
-        run: npx cdk deploy --all -c env=${{ inputs.environment }} --require-approval never
+        run: npx cdk deploy --all -c env=${{ inputs.environment }} -c appName=${{ vars.APP_NAME }} --require-approval never
         working-directory: infra
         env:
           DEV_AWS_ACCOUNT_ID: ${{ secrets.aws_account_id }}

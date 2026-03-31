@@ -20,7 +20,7 @@ aws sts get-caller-identity
 
 ```bash
 cd infra
-DEV_AWS_ACCOUNT_ID=<account-id> npx cdk deploy --all -c env=dev --require-approval never
+DEV_AWS_ACCOUNT_ID=<account-id> npx cdk deploy --all -c env=dev -c appName=<app-name> --require-approval never
 ```
 
 ### アプリのみ再デプロイ（イメージを指定）
