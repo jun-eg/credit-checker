@@ -11,7 +11,7 @@ export const AppDataSource = new DataSource({
   entities: [User, Receipt, ReceiptItem, ChatSession, ChatMessage],
   migrations: ['dist/migrations/*.js'],
   synchronize: false,
-  logging: process.env.NODE_ENV === 'development',
+  logging: process.env.TYPEORM_LOGGING === 'true',
   // RDS はSSL必須。証明書チェーンの検証はスキップ（AWS管理の自己署名CA）
   ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
 });

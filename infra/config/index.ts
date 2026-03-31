@@ -24,4 +24,5 @@ export interface EnvironmentConfig {
   authGoogleId: string;
   nodeEnv: string;
   databaseSsl: boolean;
+  typeormLogging: boolean;
 }

@@ -34,7 +34,7 @@ import { secrets } from './config/secrets';
         entities: [User, Receipt, ReceiptItem, ChatSession, ChatMessage],
         migrations: ['dist/migrations/*.js'],
         synchronize: false,
-        logging: process.env.NODE_ENV === 'development',
+        logging: process.env.TYPEORM_LOGGING === 'true',
         // SSL有無はインフラ(app-stack.ts)が DATABASE_SSL で注入する。アプリコードに環境差異を持ち込まない
         ssl: config.get<string>('DATABASE_SSL') === 'true' ? { rejectUnauthorized: false } : false,
       }),

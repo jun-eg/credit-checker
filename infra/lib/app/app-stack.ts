@@ -172,6 +172,7 @@ export class AppStack extends cdk.Stack {
       environment: {
         NODE_ENV: config.nodeEnv,
         DATABASE_SSL: String(config.databaseSsl),
+        TYPEORM_LOGGING: String(config.typeormLogging),
         AWS_REGION: config.env.region,
         S3_BUCKET_NAME: appBucket.bucketName,
         FRONTEND_URL: `https://${config.domain}`,

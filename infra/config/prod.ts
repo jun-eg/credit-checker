@@ -26,4 +26,5 @@ export const prodConfig: EnvironmentConfig = {
   authGoogleId: process.env.AUTH_GOOGLE_ID!,
   nodeEnv: process.env.NODE_ENV!,
   databaseSsl: true,
+  typeormLogging: false,
 };
