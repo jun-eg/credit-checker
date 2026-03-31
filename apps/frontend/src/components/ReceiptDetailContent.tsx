@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { GetReceiptDetailResponse, ReceiptItemDetail, UpdateReceiptItemRequest } from '../types/receipt';
 import { getReceiptImageUrl } from '../lib/api/receipts';
 
@@ -108,21 +109,34 @@ export function ReceiptDetailContent(props: ReceiptDetailContentProps) {
   const [purchasedAt, setPurchasedAt] = useState(toDateInputValue(receipt.purchasedAt));
   const [items, setItems] = useState<ItemState[]>(receipt.items.map(toItemState));
 
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [imageStatus, setImageStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  // receipt.id と token の組み合わせをキーに、取得結果をまとめて管理する
+  // ローディング状態はキーの一致/不一致から派生させることで effect 内の setState を不要にする
+  const [imageFetch, setImageFetch] = useState<{
+    key: string | null;
+    url: string | null;
+    error: boolean;
+  }>({ key: null, url: null, error: false });
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+
+  const imageFetchKey = token ? `${receipt.id}:${token}` : null;
+  const imageUrl = imageFetch.key === imageFetchKey ? imageFetch.url : null;
+  const imageStatus: 'idle' | 'loading' | 'error' =
+    imageFetch.error && imageFetch.key === imageFetchKey
+      ? 'error'
+      : imageFetchKey !== null && imageFetch.key !== imageFetchKey
+        ? 'loading'
+        : 'idle';
 
   useEffect(() => {
     if (!token) return;
-    setImageStatus('loading');
+    const fetchKey = `${receipt.id}:${token}`;
     let objectUrl: string | null = null;
     getReceiptImageUrl(receipt.id, token)
       .then((url) => {
         objectUrl = url;
-        setImageUrl(url);
-        setImageStatus('idle');
+        setImageFetch({ key: fetchKey, url, error: false });
       })
-      .catch(() => setImageStatus('error'));
+      .catch(() => setImageFetch({ key: fetchKey, url: null, error: true }));
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
@@ -222,9 +236,12 @@ export function ReceiptDetailContent(props: ReceiptDetailContentProps) {
               className="block w-full"
               aria-label="レシート画像を拡大表示"
             >
-              <img
+              <Image
                 src={imageUrl}
                 alt="レシート画像"
+                width={800}
+                height={1200}
+                unoptimized
                 className="max-h-64 w-full object-contain"
               />
             </button>
@@ -238,9 +255,12 @@ export function ReceiptDetailContent(props: ReceiptDetailContentProps) {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
           onClick={() => setIsImageModalOpen(false)}
         >
-          <img
+          <Image
             src={imageUrl}
             alt="レシート画像"
+            width={800}
+            height={1200}
+            unoptimized
             className="max-h-full max-w-full object-contain"
           />
         </div>

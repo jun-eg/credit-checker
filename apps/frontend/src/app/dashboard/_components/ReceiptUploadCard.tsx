@@ -126,7 +126,7 @@ export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
     if (hasDuplicateWarning) return;
     const timer = setTimeout(reset, 3000);
     return () => clearTimeout(timer);
-  }, [uploadState.status]);
+  }, [uploadState]);
 
   return (
     <div className="rounded-2xl bg-white p-6 shadow-sm sm:p-8 dark:bg-zinc-900">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 
 type BrowserState = 'loading' | 'normal' | 'android-webview' | 'ios-inapp';
 
@@ -8,25 +8,30 @@ type Props = {
   signIn: () => Promise<void>;
 };
 
+function detectBrowserState(): BrowserState {
+  const ua = navigator.userAgent;
+  if (/\bwv\b/.test(ua)) return 'android-webview';
+  if (/iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua)) return 'ios-inapp';
+  return 'normal';
+}
+
+// 外部ストアへの購読なし（ブラウザ判定は不変）
+const subscribeToNothing = () => () => {};
+
 export function LoginCard({ signIn }: Props) {
-  const [browserState, setBrowserState] = useState<BrowserState>('loading');
+  // useSyncExternalStore でSSR時は 'loading'、クライアント側は実際の状態を返す
+  const browserState = useSyncExternalStore(
+    subscribeToNothing,
+    detectBrowserState,
+    () => 'loading' as BrowserState,
+  );
 
   useEffect(() => {
-    const ua = navigator.userAgent;
-    const isAndroidWebView = /\bwv\b/.test(ua);
-    const isIosWebView = /iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua);
-
-    if (isAndroidWebView) {
-      // intent スキームで Chrome に自動リダイレクト
-      const { host, pathname, search } = location;
-      window.location.href = `intent://${host}${pathname}${search}#Intent;scheme=https;package=com.android.chrome;end`;
-      setBrowserState('android-webview');
-    } else if (isIosWebView) {
-      setBrowserState('ios-inapp');
-    } else {
-      setBrowserState('normal');
-    }
-  }, []);
+    if (browserState !== 'android-webview') return;
+    // intent スキームで Chrome に自動リダイレクト
+    const { host, pathname, search } = location;
+    window.location.href = `intent://${host}${pathname}${search}#Intent;scheme=https;package=com.android.chrome;end`;
+  }, [browserState]);
 
   return (
     <div className="flex w-full max-w-sm flex-col items-center gap-8 rounded-2xl bg-white p-8 shadow-sm sm:p-12 dark:bg-zinc-900">
