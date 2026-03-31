@@ -18,8 +18,8 @@
 
 | 分類 | 具体例 | 管理方法 |
 |------|--------|----------|
-| **公開設定** | `NODE_ENV`, `AWS_REGION`, `FRONTEND_URL`, `AUTH_GOOGLE_ID`, `DATABASE_SSL`, `TYPEORM_LOGGING` | ECS タスク定義の `environment:` に平文で渡す |
-| **インフラ設定** | `POSTGRES_USER`, `POSTGRES_PASSWORD`（ローカルのみ） | ローカルは `.env`、本番は RDS 自動生成シークレット |
+| **公開設定** | `NODE_ENV`, `AWS_REGION`, `AUTH_GOOGLE_ID`, `FRONTEND_URL`, `BACKEND_URL`, `NEXT_PUBLIC_BACKEND_URL`, `AUTH_URL`, `DATABASE_SSL`, `TYPEORM_LOGGING`, `S3_BUCKET_NAME` | ECS タスク定義の `environment:` に平文で渡す |
+| **インフラ設定** | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `S3_ENDPOINT`（ローカルのみ） | ローカルは `.env`、本番は RDS 自動生成シークレット |
 | **Strong Secret** | `AUTH_SECRET`, `AUTH_GOOGLE_SECRET`, `DATABASE_URL`, `JWT_SECRET`, `OPENAI_API_KEY` | Secrets Manager に登録し、ECS `secrets:` フィールドで環境変数として注入する |
 
 ### Strong Secret の注入方法の原則
@@ -62,6 +62,7 @@ frontend:
 ## 理由
 
 - **公開設定** を Secrets Manager に入れると管理コストと参照レイテンシが増える。環境名・リージョン・URL は機密ではないため平文で渡すのが適切
+- **`S3_ENDPOINT` をインフラ設定に分類した理由**: 機密ではないが、LocalStack（ローカル開発用 S3 互換サーバー）への向き先 URL であり本番 ECS には存在しない。「本番環境に存在しないローカル専用の変数」という性質が `POSTGRES_USER/PASSWORD` と同列であるため、公開設定ではなくインフラ設定に分類した
 - **Strong Secret** を `environment:` 平文で渡すと、タスク定義 JSON・CloudFormation テンプレート・CDK 出力に値が残るリスクがある。`secrets:` フィールドを使うことでタスク定義に値を残さず、実行時に Secrets Manager から取得できる
 - ECS `secrets:` フィールドと sidecar + ファイル方式はインフラレベルのセキュリティ特性がほぼ同等。sidecar は実装コストと dev parity の維持コストを生むだけで優位性がない
 - 12-factor app の設計思想（フレームワーク・SDK が環境変数でシークレットを読む）と整合する
