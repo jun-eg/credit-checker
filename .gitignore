@@ -19,3 +19,6 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Docker secrets（ローカル開発用 / 本番は Secrets Manager で管理）
+secrets/
