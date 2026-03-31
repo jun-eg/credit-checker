@@ -59,7 +59,7 @@ export class AppStack extends cdk.Stack {
       }),
     );
 
-    // github-actions-deploy-roleはCDK外で管理されているためfromRoleArnで参照
+    // github-actions-deploy-roleはBootstrapStackで管理されているためfromRoleArnで参照
     const deployRole = iam.Role.fromRoleArn(
       this,
       'DeployRole',
