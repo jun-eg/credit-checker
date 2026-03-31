@@ -57,11 +57,13 @@ migration のダウングレードが必要な場合:
 
 ```bash
 # migration task で revert を実行（Dockerfile に revert target を追加する必要あり）
-# DATABASE_URL はタスク定義の secrets: フィールドで注入済みのため、コマンドのみ上書きする
+# DB_USER/DB_PASSWORD/DB_HOST/DB_PORT/DB_NAME はタスク定義の secrets: から注入される。
+# DATABASE_URL は Secrets Manager に存在せず entrypoint で組み立てるため、
+# command の中に組み立て処理を含めて上書きする。
 aws ecs run-task \
   --cluster <app-name>-prod \
   --task-definition <app-name>-migrator-prod \
   --launch-type FARGATE \
-  --overrides '{"containerOverrides":[{"name":"migrator","command":["node_modules/.bin/typeorm","migration:revert","-d","dist/database/data-source.js"]}]}' \
+  --overrides '{"containerOverrides":[{"name":"migrator","command":["export DATABASE_URL=\"postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}\"; node_modules/.bin/typeorm migration:revert -d dist/database/data-source.js"]}]}' \
   --network-configuration "awsvpcConfiguration={subnets=[<public-subnet-id>],securityGroups=[<fargate-sg-id>],assignPublicIp=ENABLED}"
 ```

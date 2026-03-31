@@ -44,9 +44,10 @@ graph TB
 ```
 AWS Secrets Manager
   └─ /{app-name}/{env}/app-secrets  ※ {env} は小文字（dev / prod）
+  └─ RDS 自動生成シークレット（username, password, host, port, dbname）
         ↓ ECS タスク起動時に secrets: フィールドで注入
-  コンテナの環境変数（JWT_SECRET, AUTH_SECRET, DATABASE_URL ...）
-        ↓
+  コンテナの環境変数（JWT_SECRET, AUTH_SECRET, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME ...）
+        ↓ backend / migrator の entrypoint で DATABASE_URL を組み立て
   アプリが process.env.* から読み込む
 ```
 

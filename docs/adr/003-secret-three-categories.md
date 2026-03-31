@@ -20,7 +20,7 @@
 |------|--------|----------|
 | **公開設定** | `NODE_ENV`, `FRONTEND_PORT`, `BACKEND_PORT`, `AWS_REGION`, `AUTH_GOOGLE_ID`, `FRONTEND_URL`, `BACKEND_URL`, `NEXT_PUBLIC_BACKEND_URL`, `AUTH_URL`, `DATABASE_SSL`, `TYPEORM_LOGGING`, `S3_BUCKET_NAME` | ECS タスク定義の `environment:` に平文で渡す |
 | **インフラ設定** | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `S3_ENDPOINT`（ローカルのみ） | ローカルは `.env`、本番は RDS 自動生成シークレット |
-| **Strong Secret** | `AUTH_SECRET`, `AUTH_GOOGLE_SECRET`, `DATABASE_URL`, `JWT_SECRET`, `OPENAI_API_KEY` | Secrets Manager に登録し、ECS `secrets:` フィールドで環境変数として注入する |
+| **Strong Secret** | `AUTH_SECRET`, `AUTH_GOOGLE_SECRET`, `JWT_SECRET`, `OPENAI_API_KEY` | Secrets Manager に登録し、ECS `secrets:` フィールドで環境変数として注入する |
 
 ### Strong Secret の注入方法の原則
 
