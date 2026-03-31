@@ -16,21 +16,21 @@ export AWS_PROFILE=credit-checker-dev  # または適切なプロファイル名
 # Frontend を起動（minCapacity:0 → 1 に変更）
 aws ecs update-service \
   --cluster credit-checker-dev \
-  --service credit-checker-frontend \
+  --service credit-checker-frontend-dev \
   --desired-count 1 \
   --region ap-northeast-1
 
 # Backend を起動
 aws ecs update-service \
   --cluster credit-checker-dev \
-  --service credit-checker-backend \
+  --service credit-checker-backend-dev \
   --desired-count 1 \
   --region ap-northeast-1
 
 # 起動完了待機
 aws ecs wait services-stable \
   --cluster credit-checker-dev \
-  --services credit-checker-frontend credit-checker-backend \
+  --services credit-checker-frontend-dev credit-checker-backend-dev \
   --region ap-northeast-1
 
 echo "Dev environment is ready: https://dev.jun-eg.site"
@@ -42,6 +42,6 @@ echo "Dev environment is ready: https://dev.jun-eg.site"
 # サービス状態の確認
 aws ecs describe-services \
   --cluster credit-checker-dev \
-  --services credit-checker-frontend credit-checker-backend \
+  --services credit-checker-frontend-dev credit-checker-backend-dev \
   --query 'services[*].{name:serviceName,running:runningCount,desired:desiredCount}'
 ```

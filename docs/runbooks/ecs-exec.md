@@ -11,7 +11,7 @@
 ```bash
 aws ecs list-tasks \
   --cluster credit-checker-dev \
-  --service-name credit-checker-backend \
+  --service-name credit-checker-backend-dev \
   --query 'taskArns[0]' --output text
 ```
 
@@ -20,7 +20,7 @@ aws ecs list-tasks \
 ```bash
 TASK_ARN=$(aws ecs list-tasks \
   --cluster credit-checker-dev \
-  --service-name credit-checker-backend \
+  --service-name credit-checker-backend-dev \
   --query 'taskArns[0]' --output text)
 
 aws ecs execute-command \

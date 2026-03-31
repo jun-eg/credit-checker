@@ -23,4 +23,5 @@ export interface EnvironmentConfig {
   };
   s3BucketName: string;
   authGoogleId: string;
+  nodeEnv: string;
 }

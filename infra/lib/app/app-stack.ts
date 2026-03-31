@@ -76,6 +76,7 @@ export class AppStack extends cdk.Stack {
       image: ecs.ContainerImage.fromEcrRepository(frontendRepo, 'latest'),
       portMappings: [{ containerPort: config.ports.frontend }],
       environment: {
+        NODE_ENV: config.nodeEnv,
         AUTH_GOOGLE_ID: config.authGoogleId,
         BACKEND_URL: `https://${config.domain}/api/v1`,
         NEXT_PUBLIC_BACKEND_URL: `https://${config.domain}/api/v1`,
@@ -106,7 +107,7 @@ export class AppStack extends cdk.Stack {
       image: ecs.ContainerImage.fromEcrRepository(backendRepo, 'latest'),
       portMappings: [{ containerPort: config.ports.backend }],
       environment: {
-        NODE_ENV: 'production',
+        NODE_ENV: config.nodeEnv,
         AWS_REGION: config.env.region,
         S3_BUCKET_NAME: config.s3BucketName,
         FRONTEND_URL: `https://${config.domain}`,
@@ -133,6 +134,9 @@ export class AppStack extends cdk.Stack {
         'latest',
       ),
       essential: true,
+      environment: {
+        NODE_ENV: config.nodeEnv,
+      },
       secrets: {
         DATABASE_URL: ecs.Secret.fromSecretsManager(appSecret, 'database_url'),
       },

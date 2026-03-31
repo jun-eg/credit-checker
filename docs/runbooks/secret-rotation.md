@@ -10,7 +10,8 @@ aws secretsmanager update-secret \
     "jwt_secret": "new-jwt-secret-value",
     "auth_secret": "new-auth-secret-value",
     "auth_google_secret": "existing-value",
-    "openai_api_key": "existing-value"
+    "openai_api_key": "existing-value",
+    "database_url": "existing-value"
   }'
 ```
 

@@ -6,24 +6,24 @@
 # 現在のリビジョンを確認
 aws ecs describe-services \
   --cluster credit-checker-prod \
-  --services credit-checker-frontend credit-checker-backend \
+  --services credit-checker-frontend-prod credit-checker-backend-prod \
   --query 'services[*].{name:serviceName,taskDef:taskDefinition}'
 
 # 1つ前のリビジョンに戻す（例: revision 5 → 4）
 aws ecs update-service \
   --cluster credit-checker-prod \
-  --service credit-checker-frontend \
+  --service credit-checker-frontend-prod \
   --task-definition credit-checker-frontend-prod:4
 
 aws ecs update-service \
   --cluster credit-checker-prod \
-  --service credit-checker-backend \
+  --service credit-checker-backend-prod \
   --task-definition credit-checker-backend-prod:4
 
 # 安定待機
 aws ecs wait services-stable \
   --cluster credit-checker-prod \
-  --services credit-checker-frontend credit-checker-backend
+  --services credit-checker-frontend-prod credit-checker-backend-prod
 ```
 
 ## インフラ Rollback（CDK）
