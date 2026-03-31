@@ -12,6 +12,7 @@ import { EnvironmentConfig } from '../../config';
 
 interface EdgeStackProps extends cdk.StackProps {
   config: EnvironmentConfig;
+  albSecurityGroup: ec2.SecurityGroup;
   frontendService: ecs.FargateService;
   backendService: ecs.FargateService;
 }
@@ -20,7 +21,7 @@ export class EdgeStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: EdgeStackProps) {
     super(scope, id, props);
 
-    const { config, frontendService, backendService } = props;
+    const { config, albSecurityGroup, frontendService, backendService } = props;
     const { ports } = config;
 
     const hostedZone = route53.HostedZone.fromLookup(this, 'HostedZone', {
@@ -34,13 +35,6 @@ export class EdgeStack extends cdk.Stack {
     });
 
     const vpc = frontendService.cluster.vpc;
-    const albSecurityGroup = new ec2.SecurityGroup(this, 'AlbSgRef', {
-      vpc,
-      description: 'ALB security group (edge stack)',
-    });
-    albSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80));
-    albSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(443));
-
     const alb = new elbv2.ApplicationLoadBalancer(this, 'Alb', {
       vpc,
       internetFacing: true,

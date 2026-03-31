@@ -20,10 +20,10 @@ jobs:
       - name: Scale down ECS services
         run: |
           aws ecs update-service \
-            --cluster credit-checker-dev \
-            --service credit-checker-frontend \
+            --cluster ${{ vars.APP_NAME }}-dev \
+            --service ${{ vars.APP_NAME }}-frontend-dev \
             --desired-count 0
           aws ecs update-service \
-            --cluster credit-checker-dev \
-            --service credit-checker-backend \
+            --cluster ${{ vars.APP_NAME }}-dev \
+            --service ${{ vars.APP_NAME }}-backend-dev \
             --desired-count 0

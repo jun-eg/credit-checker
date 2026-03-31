@@ -39,6 +39,7 @@ const appStack = new AppStack(app, `${config.envName}App`, {
 new EdgeStack(app, `${config.envName}Edge`, {
   config,
   env: config.env,
+  albSecurityGroup: network.albSecurityGroup,
   frontendService: appStack.frontendService,
   backendService: appStack.backendService,
 });
