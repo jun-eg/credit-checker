@@ -51,11 +51,12 @@ describe('NetworkStack', () => {
   });
 
   it('Fargate SG が ALB SG からの inbound を持つこと', () => {
-    // Fargate SG への ALB SG からの ingress（SecurityGroupIngress リソース or インライン）
+    // Fargate SG への ALB SG からの ingress（frontend / backend の各アプリポートに限定）
     template.hasResourceProperties('AWS::EC2::SecurityGroup', {
       GroupDescription: 'Fargate tasks security group',
       SecurityGroupIngress: Match.arrayWith([
-        Match.objectLike({ IpProtocol: '-1' }),
+        Match.objectLike({ IpProtocol: 'tcp', FromPort: 3000, ToPort: 3000 }),
+        Match.objectLike({ IpProtocol: 'tcp', FromPort: 3003, ToPort: 3003 }),
       ]),
     });
   });
