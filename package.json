@@ -3,10 +3,11 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "install": "npm install --prefix apps/frontend && npm install --prefix apps/backend",
     "dev": "make up",
-    "dev:frontend": "npm run dev --prefix apps/frontend",
-    "dev:backend": "npm run start:dev --prefix apps/backend",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f",
+    "ps": "docker compose ps",
+    "deps": "npm install --prefix apps/frontend && npm install --prefix apps/backend",
     "lint": "npm run lint --prefix apps/frontend && npm run lint --prefix apps/backend",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,css,md}\" --ignore-path .prettierignore"
   },
