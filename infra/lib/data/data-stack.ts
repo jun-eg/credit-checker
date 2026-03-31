@@ -7,6 +7,7 @@ import { EnvironmentConfig } from '../../config';
 import { SecureRds } from '../../constructs/secure-rds';
 
 interface DataStackProps extends cdk.StackProps {
+  appName: string;
   config: EnvironmentConfig;
   vpc: ec2.Vpc;
   rdsSecurityGroup: ec2.SecurityGroup;
@@ -14,12 +15,12 @@ interface DataStackProps extends cdk.StackProps {
 
 export class DataStack extends cdk.Stack {
   readonly appSecret: secretsmanager.ISecret;
-  readonly receiptsBucket: s3.Bucket;
+  readonly appBucket: s3.Bucket;
 
   constructor(scope: Construct, id: string, props: DataStackProps) {
     super(scope, id, props);
 
-    const { config, vpc, rdsSecurityGroup } = props;
+    const { appName, config, vpc, rdsSecurityGroup } = props;
     const envLower = config.envName.toLowerCase();
 
     const rdsConstruct = new SecureRds(this, 'Postgres', {
@@ -46,8 +47,8 @@ export class DataStack extends cdk.Stack {
       },
     });
 
-    this.receiptsBucket = new s3.Bucket(this, 'ReceiptsBucket', {
-      bucketName: config.s3BucketName,
+    this.appBucket = new s3.Bucket(this, 'AppBucket', {
+      bucketName: `${appName}-${envLower}`,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
@@ -60,7 +61,7 @@ export class DataStack extends cdk.Stack {
       value: this.appSecret.secretArn,
     });
     new cdk.CfnOutput(this, 'BucketName', {
-      value: this.receiptsBucket.bucketName,
+      value: this.appBucket.bucketName,
     });
   }
 }

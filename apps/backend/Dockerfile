@@ -12,7 +12,7 @@ ENV NODE_ENV=production
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./
-# DATABASE_URL は /run/secrets/database_url から読む
+# DATABASE_URL は ECS secrets: フィールドで環境変数として注入される
 COPY apps/backend/scripts/run-migration.sh ./
 RUN chmod +x run-migration.sh
 CMD ["sh", "run-migration.sh"]

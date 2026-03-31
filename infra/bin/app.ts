@@ -20,6 +20,7 @@ const network = new NetworkStack(app, `${config.envName}Network`, {
 });
 
 const data = new DataStack(app, `${config.envName}Data`, {
+  appName,
   config,
   env: config.env,
   vpc: network.vpc,
@@ -33,7 +34,7 @@ const appStack = new AppStack(app, `${config.envName}App`, {
   vpc: network.vpc,
   appSecret: data.appSecret,
   fargateSecurityGroup: network.fargateSecurityGroup,
-  receiptsBucket: data.receiptsBucket,
+  appBucket: data.appBucket,
 });
 
 new EdgeStack(app, `${config.envName}Edge`, {

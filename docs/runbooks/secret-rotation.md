@@ -39,12 +39,12 @@ Secrets Manager の値を更新しても、**実行中の ECS タスクは再起
 ```bash
 aws ecs update-service \
   --cluster credit-checker-prod \
-  --service credit-checker-backend \
+  --service credit-checker-backend-prod \
   --force-new-deployment
 
 aws ecs update-service \
   --cluster credit-checker-prod \
-  --service credit-checker-frontend \
+  --service credit-checker-frontend-prod \
   --force-new-deployment
 ```
 

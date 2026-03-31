@@ -21,7 +21,7 @@ export interface EnvironmentConfig {
     frontend: number;
     backend: number;
   };
-  s3BucketName: string;
   authGoogleId: string;
   nodeEnv: string;
+  databaseSsl: boolean;
 }

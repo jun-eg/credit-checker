@@ -15,6 +15,7 @@ function buildAppTemplate(config: typeof devConfig) {
     env: config.env,
   });
   const data = new DataStack(app, `${config.envName}Data`, {
+    appName: TEST_APP_NAME,
     config,
     env: config.env,
     vpc: network.vpc,
@@ -27,7 +28,7 @@ function buildAppTemplate(config: typeof devConfig) {
     vpc: network.vpc,
     appSecret: data.appSecret,
     fargateSecurityGroup: network.fargateSecurityGroup,
-    receiptsBucket: data.receiptsBucket,
+    appBucket: data.appBucket,
   });
   return Template.fromStack(appStack);
 }

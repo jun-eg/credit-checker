@@ -15,7 +15,7 @@ interface AppStackProps extends cdk.StackProps {
   vpc: ec2.Vpc;
   appSecret: secretsmanager.ISecret;
   fargateSecurityGroup: ec2.SecurityGroup;
-  receiptsBucket: s3.IBucket;
+  appBucket: s3.IBucket;
 }
 
 export class AppStack extends cdk.Stack {
@@ -25,7 +25,7 @@ export class AppStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: AppStackProps) {
     super(scope, id, props);
 
-    const { appName, config, vpc, appSecret, fargateSecurityGroup, receiptsBucket } = props;
+    const { appName, config, vpc, appSecret, fargateSecurityGroup, appBucket } = props;
     const envLower = config.envName.toLowerCase();
 
     const cluster = new ecs.Cluster(this, 'Cluster', {
@@ -122,7 +122,7 @@ export class AppStack extends cdk.Stack {
     const backendTaskRole = new iam.Role(this, 'BackendTaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
     });
-    receiptsBucket.grantReadWrite(backendTaskRole);
+    appBucket.grantReadWrite(backendTaskRole);
 
     const backendTask = new ecs.FargateTaskDefinition(this, 'BackendTask', {
       cpu: 256,
@@ -139,8 +139,9 @@ export class AppStack extends cdk.Stack {
       portMappings: [{ containerPort: config.ports.backend }],
       environment: {
         NODE_ENV: config.nodeEnv,
+        DATABASE_SSL: String(config.databaseSsl),
         AWS_REGION: config.env.region,
-        S3_BUCKET_NAME: config.s3BucketName,
+        S3_BUCKET_NAME: appBucket.bucketName,
         FRONTEND_URL: `https://${config.domain}`,
       },
       secrets: {
@@ -169,6 +170,7 @@ export class AppStack extends cdk.Stack {
       essential: true,
       environment: {
         NODE_ENV: config.nodeEnv,
+        DATABASE_SSL: String(config.databaseSsl),
       },
       secrets: {
         DATABASE_URL: ecs.Secret.fromSecretsManager(appSecret, 'database_url'),

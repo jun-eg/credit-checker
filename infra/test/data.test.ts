@@ -5,6 +5,8 @@ import { prodConfig } from '../config/prod';
 import { NetworkStack } from '../lib/network/network-stack';
 import { DataStack } from '../lib/data/data-stack';
 
+const TEST_APP_NAME = 'test-app';
+
 function buildDataTemplate(config: typeof devConfig) {
   const app = new cdk.App();
   const network = new NetworkStack(app, `${config.envName}Network`, {
@@ -12,6 +14,7 @@ function buildDataTemplate(config: typeof devConfig) {
     env: config.env,
   });
   const data = new DataStack(app, `${config.envName}Data`, {
+    appName: TEST_APP_NAME,
     config,
     env: config.env,
     vpc: network.vpc,

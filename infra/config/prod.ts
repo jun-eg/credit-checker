@@ -23,7 +23,7 @@ export const prodConfig: EnvironmentConfig = {
     frontend: 3000,
     backend: 3003,
   },
-  s3BucketName: 'credit-checker-prod-receipts',
   authGoogleId: process.env.AUTH_GOOGLE_ID!,
   nodeEnv: process.env.NODE_ENV!,
+  databaseSsl: true,
 };
