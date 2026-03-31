@@ -46,7 +46,7 @@ export class AppStack extends cdk.Stack {
       new iam.PolicyStatement({
         actions: ['secretsmanager:GetSecretValue'],
         resources: [
-          `arn:aws:secretsmanager:${config.env.region}:${config.env.account}:secret:/credit-checker/${envLower}/*`,
+          `arn:aws:secretsmanager:${config.env.region}:${config.env.account}:secret:/${appName}/${envLower}/*`,
         ],
       }),
     );
@@ -115,7 +115,7 @@ export class AppStack extends cdk.Stack {
       memoryLimitMiB: 512,
       executionRole: taskExecutionRole,
       taskRole: frontendTaskRole,
-      family: `credit-checker-frontend-${envLower}`,
+      family: `${appName}-frontend-${envLower}`,
     });
 
     frontendTask.addContainer('frontend', {
@@ -161,7 +161,7 @@ export class AppStack extends cdk.Stack {
       memoryLimitMiB: 512,
       executionRole: taskExecutionRole,
       taskRole: backendTaskRole,
-      family: `credit-checker-backend-${envLower}`,
+      family: `${appName}-backend-${envLower}`,
     });
 
     backendTask.addContainer('backend', {
@@ -190,7 +190,7 @@ export class AppStack extends cdk.Stack {
       cpu: 256,
       memoryLimitMiB: 512,
       executionRole: taskExecutionRole,
-      family: `credit-checker-migrator-${envLower}`,
+      family: `${appName}-migrator-${envLower}`,
     });
 
     migratorTask.addContainer('migrator', {
