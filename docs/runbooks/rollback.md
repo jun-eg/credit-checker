@@ -45,11 +45,11 @@ migration のダウングレードが必要な場合:
 
 ```bash
 # migration task で revert を実行（Dockerfile に revert target を追加する必要あり）
-# 現状は手動で migration:revert を実行
+# DATABASE_URL はタスク定義の secrets: フィールドで注入済みのため、コマンドのみ上書きする
 aws ecs run-task \
   --cluster credit-checker-prod \
   --task-definition credit-checker-migrator-prod \
   --launch-type FARGATE \
-  --overrides '{"containerOverrides":[{"name":"migrator","command":["sh","-c","export DATABASE_URL=$(cat /run/secrets/database_url); node_modules/.bin/typeorm migration:revert -d dist/database/data-source.js"]}]}' \
+  --overrides '{"containerOverrides":[{"name":"migrator","command":["node_modules/.bin/typeorm","migration:revert","-d","dist/database/data-source.js"]}]}' \
   --network-configuration "awsvpcConfiguration={subnets=[<public-subnet-id>],securityGroups=[<fargate-sg-id>],assignPublicIp=ENABLED}"
 ```

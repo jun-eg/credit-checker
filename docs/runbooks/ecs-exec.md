@@ -34,12 +34,12 @@ aws ecs execute-command \
 ## よく使うコマンド（コンテナ内）
 
 ```sh
-# secret が正しくマウントされているか確認
-ls /run/secrets/
-cat /run/secrets/database_url | head -c 30
+# Secret が環境変数として注入されているか確認（ECS secrets: フィールド経由）
+echo $DATABASE_URL | head -c 30
+printenv | grep -E 'JWT_SECRET|DATABASE_URL|OPENAI_API_KEY'
 
 # DB 接続確認
-node -e "const pg=require('pg'); const c=new pg.Client({connectionString:require('fs').readFileSync('/run/secrets/database_url','utf8').trim()}); c.connect().then(()=>c.query('SELECT NOW()').then(r=>console.log(r.rows)).finally(()=>c.end()))"
+node -e "const pg=require('pg'); const c=new pg.Client({connectionString:process.env.DATABASE_URL}); c.connect().then(()=>c.query('SELECT NOW()').then(r=>console.log(r.rows)).finally(()=>c.end()))"
 ```
 
 ## 注意

@@ -21,8 +21,8 @@ graph TB
     FE --> BE
     BE --> RDS
     BE --> S3
-    SM -->|sidecar| FE
-    SM -->|sidecar| BE
+    SM -->|"ECS secrets:"| FE
+    SM -->|"ECS secrets:"| BE
     ECR --> FE
     ECR --> BE
 ```
@@ -44,15 +44,14 @@ graph TB
 ```
 AWS Secrets Manager
   └─ /credit-checker/{env}/app-secrets
-        ↓ sidecar コンテナが取得
-  /run/secrets/jwt_secret
-  /run/secrets/auth_secret
-  /run/secrets/auth_google_secret
-  /run/secrets/openai_api_key
-  /run/secrets/database_url
-        ↓ shared volume 経由
-  main コンテナが /run/secrets/ から読み込む
+        ↓ ECS タスク起動時に secrets: フィールドで注入
+  コンテナの環境変数（JWT_SECRET, AUTH_SECRET, DATABASE_URL ...）
+        ↓
+  アプリが process.env.* から読み込む
 ```
+
+ローカル（docker compose）は `/run/secrets/` ファイルを entrypoint で環境変数に変換してから起動する。
+アプリコード自体は環境を意識しない。
 
 ## Deploy の流れ
 
