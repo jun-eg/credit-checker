@@ -103,7 +103,7 @@ Secret の読み込み方式を例に取ると：
 ```
 ① Docker build & push → ECR
 ② migration task 実行（完了・成功を待機）
-③ ECS Service 更新（force-new-deployment）
+③ ECS Service 更新（新しいタスク定義ARNを --task-definition で指定）
 ④ services-stable 待機
 ⑤ 失敗時 → 前リビジョンへ自動 rollback
 ```
