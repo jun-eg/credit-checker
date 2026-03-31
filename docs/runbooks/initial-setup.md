@@ -35,6 +35,9 @@ npx cdk deploy NetworkStack-dev DataStack-dev AppStack-dev EdgeStack-dev
 
 ### 2. Secrets Manager を更新する
 
+**この手順は ECS サービス起動前に必ず実施すること。**
+`REPLACE_ME` のままでは起動後にアプリが正常動作しない。
+
 CDK deploy により以下が自動生成済み（手動設定不要）：
 - `/<app-name>/<env>/jwt-secret` — CDK が自動生成
 - `/<app-name>/<env>/auth-secret` — CDK が自動生成
