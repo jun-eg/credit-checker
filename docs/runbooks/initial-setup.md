@@ -30,7 +30,7 @@ docker compose up
 
 ```bash
 cd infra
-npx cdk deploy NetworkStack-dev DataStack-dev AppStack-dev EdgeStack-dev
+npx cdk deploy DevNetwork DevData DevApp DevEdge
 ```
 
 ### 2. Secrets Manager を更新する

@@ -68,9 +68,13 @@ NetworkStack が SG を所有し、利用するスタック（DataStack / AppSta
 
 | 分類 | 具体例 | 管理方法 |
 |------|--------|----------|
-| 公開設定 | `NODE_ENV`, `FRONTEND_PORT`, `BACKEND_PORT`, `AWS_REGION`, `AUTH_GOOGLE_ID`, `FRONTEND_URL`, `BACKEND_URL`, `NEXT_PUBLIC_BACKEND_URL`, `AUTH_URL`, `DATABASE_SSL`, `TYPEORM_LOGGING`, `S3_BUCKET_NAME` | ECS `environment:` に平文 |
+| 公開設定 | `NODE_ENV`[^1], `FRONTEND_PORT`, `BACKEND_PORT`, `AWS_REGION`, `AUTH_GOOGLE_ID`, `FRONTEND_URL`, `BACKEND_URL`, `NEXT_PUBLIC_BACKEND_URL`, `AUTH_URL`, `DATABASE_SSL`, `TYPEORM_LOGGING`, `S3_BUCKET_NAME` | ECS `environment:` に平文 |
 | インフラ設定 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `S3_ENDPOINT`（ローカルのみ） | `.env` で管理 |
-| Strong Secret | `AUTH_SECRET`, `AUTH_GOOGLE_SECRET`, `DATABASE_URL`, `JWT_SECRET`, `OPENAI_API_KEY` | Secrets Manager → ECS `secrets:` フィールドで環境変数注入 |
+| Strong Secret | `AUTH_SECRET`, `AUTH_GOOGLE_SECRET`, `JWT_SECRET`, `OPENAI_API_KEY` | Secrets Manager → ECS `secrets:` フィールドで環境変数注入 |
+
+[^1]: Next.js は `next build` 時に `NODE_ENV` を `production` に自動固定するため、frontend コンテナへの ECS `environment:` 注入は不要（注入しても無視される）。backend（NestJS）は実行時参照のため注入する。
+
+`DATABASE_URL` は Secrets Manager に保存しない。RDS が自動生成するシークレット（`username` / `password` / `host` / `port` / `dbname`）を ECS `secrets:` フィールドで個別注入し、コンテナ起動時の entrypoint シェルスクリプトで組み立てる。
 
 ECS `secrets:` フィールドを使うことで、値はタスク定義 JSON・CloudFormation テンプレート・CDK 出力に残らない。
 `environment:` 平文との違いはここにある。
@@ -88,7 +92,7 @@ URL 系の変数（`BACKEND_URL`, `NEXT_PUBLIC_BACKEND_URL`, `AUTH_URL`, `FRONTE
 
 Secret の読み込み方式を例に取ると：
 
-- **ECS（dev / prod）**: `secrets:` フィールドにより `DATABASE_URL` 等が環境変数として注入済み
+- **ECS（dev / prod）**: `secrets:` フィールドにより RDS 個別フィールド（`DB_USER` / `DB_PASSWORD` 等）が注入済み。`DATABASE_URL` は entrypoint シェルスクリプトで組み立ててから起動
 - **ローカル（docker compose）**: `entrypoint` でファイル（`/run/secrets/`）を読んで環境変数に変換してから起動
 
 アプリコード（`secrets.ts`）は `process.env.DATABASE_URL` を読むだけ。
