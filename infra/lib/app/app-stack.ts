@@ -78,6 +78,24 @@ export class AppStack extends cdk.Stack {
       }),
     );
 
+    // --- Frontend Task Role ---
+    const frontendTaskRole = new iam.Role(this, 'FrontendTaskRole', {
+      assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
+    });
+
+    frontendTaskRole.addToPolicy(
+      new iam.PolicyStatement({
+        // ECS Exec (ecs-exec.md) に必要
+        actions: [
+          'ssmmessages:CreateControlChannel',
+          'ssmmessages:CreateDataChannel',
+          'ssmmessages:OpenControlChannel',
+          'ssmmessages:OpenDataChannel',
+        ],
+        resources: ['*'],
+      }),
+    );
+
     // --- ECR リポジトリ ---
     const frontendRepo = new ecr.Repository(this, 'FrontendRepo', {
       repositoryName: `${appName}-frontend`,
@@ -96,6 +114,7 @@ export class AppStack extends cdk.Stack {
       cpu: 256,
       memoryLimitMiB: 512,
       executionRole: taskExecutionRole,
+      taskRole: frontendTaskRole,
       family: `credit-checker-frontend-${envLower}`,
     });
 
@@ -123,6 +142,19 @@ export class AppStack extends cdk.Stack {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
     });
     appBucket.grantReadWrite(backendTaskRole);
+
+    backendTaskRole.addToPolicy(
+      new iam.PolicyStatement({
+        // ECS Exec (ecs-exec.md) に必要
+        actions: [
+          'ssmmessages:CreateControlChannel',
+          'ssmmessages:CreateDataChannel',
+          'ssmmessages:OpenControlChannel',
+          'ssmmessages:OpenDataChannel',
+        ],
+        resources: ['*'],
+      }),
+    );
 
     const backendTask = new ecs.FargateTaskDefinition(this, 'BackendTask', {
       cpu: 256,

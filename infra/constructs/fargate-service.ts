@@ -30,6 +30,7 @@ export class FargateService extends Construct {
       assignPublicIp: true,
       securityGroups: [securityGroup],
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      enableExecuteCommand: true,
     });
 
     const scaling = this.service.autoScaleTaskCount({
