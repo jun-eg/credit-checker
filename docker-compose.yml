@@ -50,6 +50,15 @@ services:
       dockerfile: apps/backend/Dockerfile
     ports:
       - "3003:3003"
+    # /run/secrets/ からファイルを読んで環境変数に変換してから起動
+    entrypoint: "/bin/sh"
+    command:
+      - "-c"
+      - >
+        export JWT_SECRET=$(cat /run/secrets/jwt_secret);
+        export OPENAI_API_KEY=$(cat /run/secrets/openai_api_key);
+        export DATABASE_URL=$(cat /run/secrets/database_url);
+        exec node dist/main
     environment:
       NODE_ENV: ${NODE_ENV}
       AWS_REGION: ${AWS_REGION}
@@ -60,8 +69,6 @@ services:
       FRONTEND_URL: ${FRONTEND_URL}
     secrets:
       - jwt_secret
-      - auth_secret
-      - auth_google_secret
       - openai_api_key
       - database_url
     depends_on:

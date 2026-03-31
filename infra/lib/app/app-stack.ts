@@ -112,8 +112,6 @@ export class AppStack extends cdk.Stack {
       },
       secrets: {
         JWT_SECRET: ecs.Secret.fromSecretsManager(appSecret, 'jwt_secret'),
-        AUTH_SECRET: ecs.Secret.fromSecretsManager(appSecret, 'auth_secret'),
-        AUTH_GOOGLE_SECRET: ecs.Secret.fromSecretsManager(appSecret, 'auth_google_secret'),
         OPENAI_API_KEY: ecs.Secret.fromSecretsManager(appSecret, 'openai_api_key'),
         DATABASE_URL: ecs.Secret.fromSecretsManager(appSecret, 'database_url'),
       },
