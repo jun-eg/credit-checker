@@ -8,10 +8,12 @@
 
 ## タスク ARN の確認
 
+`<app-name>` は `vars.APP_NAME` の値（例: `credit-checker`）、`<env>` は `dev` または `prod`。
+
 ```bash
 aws ecs list-tasks \
-  --cluster credit-checker-dev \
-  --service-name credit-checker-backend-dev \
+  --cluster <app-name>-<env> \
+  --service-name <app-name>-backend-<env> \
   --query 'taskArns[0]' --output text
 ```
 
@@ -19,12 +21,12 @@ aws ecs list-tasks \
 
 ```bash
 TASK_ARN=$(aws ecs list-tasks \
-  --cluster credit-checker-dev \
-  --service-name credit-checker-backend-dev \
+  --cluster <app-name>-<env> \
+  --service-name <app-name>-backend-<env> \
   --query 'taskArns[0]' --output text)
 
 aws ecs execute-command \
-  --cluster credit-checker-dev \
+  --cluster <app-name>-<env> \
   --task "${TASK_ARN}" \
   --container backend \
   --command "/bin/sh" \

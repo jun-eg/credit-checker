@@ -2,28 +2,30 @@
 
 ## アプリ Rollback（タスク定義を前リビジョンに戻す）
 
+`<app-name>` は `vars.APP_NAME` の値（例: `credit-checker`）。
+
 ```bash
 # 現在のリビジョンを確認
 aws ecs describe-services \
-  --cluster credit-checker-prod \
-  --services credit-checker-frontend-prod credit-checker-backend-prod \
+  --cluster <app-name>-prod \
+  --services <app-name>-frontend-prod <app-name>-backend-prod \
   --query 'services[*].{name:serviceName,taskDef:taskDefinition}'
 
 # 1つ前のリビジョンに戻す（例: revision 5 → 4）
 aws ecs update-service \
-  --cluster credit-checker-prod \
-  --service credit-checker-frontend-prod \
-  --task-definition credit-checker-frontend-prod:4
+  --cluster <app-name>-prod \
+  --service <app-name>-frontend-prod \
+  --task-definition <app-name>-frontend-prod:4
 
 aws ecs update-service \
-  --cluster credit-checker-prod \
-  --service credit-checker-backend-prod \
-  --task-definition credit-checker-backend-prod:4
+  --cluster <app-name>-prod \
+  --service <app-name>-backend-prod \
+  --task-definition <app-name>-backend-prod:4
 
 # 安定待機
 aws ecs wait services-stable \
-  --cluster credit-checker-prod \
-  --services credit-checker-frontend-prod credit-checker-backend-prod
+  --cluster <app-name>-prod \
+  --services <app-name>-frontend-prod <app-name>-backend-prod
 ```
 
 ## インフラ Rollback（CDK）
@@ -47,8 +49,8 @@ migration のダウングレードが必要な場合:
 # migration task で revert を実行（Dockerfile に revert target を追加する必要あり）
 # DATABASE_URL はタスク定義の secrets: フィールドで注入済みのため、コマンドのみ上書きする
 aws ecs run-task \
-  --cluster credit-checker-prod \
-  --task-definition credit-checker-migrator-prod \
+  --cluster <app-name>-prod \
+  --task-definition <app-name>-migrator-prod \
   --launch-type FARGATE \
   --overrides '{"containerOverrides":[{"name":"migrator","command":["node_modules/.bin/typeorm","migration:revert","-d","dist/database/data-source.js"]}]}' \
   --network-configuration "awsvpcConfiguration={subnets=[<public-subnet-id>],securityGroups=[<fargate-sg-id>],assignPublicIp=ENABLED}"

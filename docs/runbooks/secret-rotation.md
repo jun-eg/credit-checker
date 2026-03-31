@@ -2,10 +2,12 @@
 
 ## 手動更新（値を変更する）
 
+`<app-name>` は `vars.APP_NAME` の値（例: `credit-checker`）、`<env>` は `dev` または `prod`。
+
 ```bash
 # シークレット全体を更新
 aws secretsmanager update-secret \
-  --secret-id "/credit-checker/prod/app-secrets" \
+  --secret-id "/<app-name>/<env>/app-secrets" \
   --secret-string '{
     "jwt_secret": "new-jwt-secret-value",
     "auth_secret": "new-auth-secret-value",
@@ -20,14 +22,14 @@ aws secretsmanager update-secret \
 ```bash
 # 現在の値を取得
 CURRENT=$(aws secretsmanager get-secret-value \
-  --secret-id "/credit-checker/prod/app-secrets" \
+  --secret-id "/<app-name>/<env>/app-secrets" \
   --query SecretString --output text)
 
 # jwt_secret のみ更新
 NEW=$(echo "$CURRENT" | jq '.jwt_secret = "new-value"')
 
 aws secretsmanager update-secret \
-  --secret-id "/credit-checker/prod/app-secrets" \
+  --secret-id "/<app-name>/<env>/app-secrets" \
   --secret-string "$NEW"
 ```
 
@@ -38,13 +40,13 @@ Secrets Manager の値を更新しても、**実行中の ECS タスクは再起
 
 ```bash
 aws ecs update-service \
-  --cluster credit-checker-prod \
-  --service credit-checker-backend-prod \
+  --cluster <app-name>-prod \
+  --service <app-name>-backend-prod \
   --force-new-deployment
 
 aws ecs update-service \
-  --cluster credit-checker-prod \
-  --service credit-checker-frontend-prod \
+  --cluster <app-name>-prod \
+  --service <app-name>-frontend-prod \
   --force-new-deployment
 ```
 
