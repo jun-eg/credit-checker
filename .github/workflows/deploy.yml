@@ -4,6 +4,11 @@ on:
   push:
     branches: [develop, main]
 
+# reusable workflow が OIDC (id-token: write) を使うため、呼び出し側でも明示が必要
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   # 変更箇所の検知
   detect-changes:
