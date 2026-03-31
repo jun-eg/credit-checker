@@ -33,25 +33,50 @@ jobs:
             echo "name=dev" >> "$GITHUB_OUTPUT"
           fi
 
-  # インフラデプロイ（infra/ に変更がある場合のみ）
-  deploy-infra:
+  # インフラデプロイ - dev（infra/ に変更がある場合のみ）
+  deploy-infra-dev:
     needs: detect-changes
-    if: needs.detect-changes.outputs.infra == 'true'
+    if: needs.detect-changes.outputs.infra == 'true' && needs.detect-changes.outputs.env == 'dev'
     uses: ./.github/workflows/reusable-infra-deploy.yml
     with:
-      environment: ${{ needs.detect-changes.outputs.env }}
+      environment: dev
     secrets:
-      aws_account_id: ${{ needs.detect-changes.outputs.env == 'prod' && secrets.PROD_AWS_ACCOUNT_ID || secrets.DEV_AWS_ACCOUNT_ID }}
+      aws_account_id: ${{ secrets.DEV_AWS_ACCOUNT_ID }}
 
-  # アプリデプロイ（apps/ に変更がある場合のみ、infra デプロイの後に実行）
-  deploy-app:
-    needs: [detect-changes, deploy-infra]
+  # インフラデプロイ - prod（infra/ に変更がある場合のみ）
+  deploy-infra-prod:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.infra == 'true' && needs.detect-changes.outputs.env == 'prod'
+    uses: ./.github/workflows/reusable-infra-deploy.yml
+    with:
+      environment: prod
+    secrets:
+      aws_account_id: ${{ secrets.PROD_AWS_ACCOUNT_ID }}
+
+  # アプリデプロイ - dev（apps/ に変更がある場合のみ、infra デプロイの後に実行）
+  deploy-app-dev:
+    needs: [detect-changes, deploy-infra-dev]
     if: |
       always() &&
       needs.detect-changes.outputs.apps == 'true' &&
-      (needs.deploy-infra.result == 'success' || needs.deploy-infra.result == 'skipped')
+      needs.detect-changes.outputs.env == 'dev' &&
+      (needs.deploy-infra-dev.result == 'success' || needs.deploy-infra-dev.result == 'skipped')
     uses: ./.github/workflows/reusable-app-deploy.yml
     with:
-      environment: ${{ needs.detect-changes.outputs.env }}
+      environment: dev
     secrets:
-      aws_account_id: ${{ needs.detect-changes.outputs.env == 'prod' && secrets.PROD_AWS_ACCOUNT_ID || secrets.DEV_AWS_ACCOUNT_ID }}
+      aws_account_id: ${{ secrets.DEV_AWS_ACCOUNT_ID }}
+
+  # アプリデプロイ - prod（apps/ に変更がある場合のみ、infra デプロイの後に実行）
+  deploy-app-prod:
+    needs: [detect-changes, deploy-infra-prod]
+    if: |
+      always() &&
+      needs.detect-changes.outputs.apps == 'true' &&
+      needs.detect-changes.outputs.env == 'prod' &&
+      (needs.deploy-infra-prod.result == 'success' || needs.deploy-infra-prod.result == 'skipped')
+    uses: ./.github/workflows/reusable-app-deploy.yml
+    with:
+      environment: prod
+    secrets:
+      aws_account_id: ${{ secrets.PROD_AWS_ACCOUNT_ID }}
