@@ -129,17 +129,29 @@ export class ReceiptsService {
       purchasedAt?: string | null;
       total?: number | null;
       currency?: string | null;
-      items?: { id?: string; name?: string; category?: string | null; quantity?: number; unitPrice?: number; totalPrice?: number }[];
+      items?: {
+        id?: string;
+        name?: string;
+        category?: string | null;
+        quantity?: number;
+        unitPrice?: number;
+        totalPrice?: number;
+      }[];
     },
   ): Promise<Receipt> {
-    const receipt = await this.receiptsRepository.findOneBy({ id: receiptId, userId });
+    const receipt = await this.receiptsRepository.findOneBy({
+      id: receiptId,
+      userId,
+    });
     if (!receipt) {
       throw new NotFoundException(`レシートが見つかりません: ${receiptId}`);
     }
 
     if (data.storeName !== undefined) receipt.storeName = data.storeName;
     if (data.purchasedAt !== undefined) {
-      receipt.purchasedAt = data.purchasedAt ? new Date(data.purchasedAt) : null;
+      receipt.purchasedAt = data.purchasedAt
+        ? new Date(data.purchasedAt)
+        : null;
     }
     if (data.total !== undefined) receipt.total = data.total;
     if (data.currency !== undefined) receipt.currency = data.currency;
@@ -147,8 +159,12 @@ export class ReceiptsService {
     await this.receiptsRepository.save(receipt);
 
     if (data.items !== undefined) {
-      const existingItems = await this.receiptItemsRepository.findBy({ receiptId });
-      const incomingIds = new Set(data.items.map((i) => i.id).filter((id): id is string => !!id));
+      const existingItems = await this.receiptItemsRepository.findBy({
+        receiptId,
+      });
+      const incomingIds = new Set(
+        data.items.map((i) => i.id).filter((id): id is string => !!id),
+      );
 
       // idが送られていない既存アイテムを削除
       const toDelete = existingItems.filter((e) => !incomingIds.has(e.id));
@@ -162,10 +178,14 @@ export class ReceiptsService {
           const item = existingItems.find((e) => e.id === itemData.id);
           if (!item) continue;
           if (itemData.name !== undefined) item.name = itemData.name;
-          if (itemData.category !== undefined) item.category = itemData.category;
-          if (itemData.quantity !== undefined) item.quantity = itemData.quantity;
-          if (itemData.unitPrice !== undefined) item.unitPrice = itemData.unitPrice;
-          if (itemData.totalPrice !== undefined) item.totalPrice = itemData.totalPrice;
+          if (itemData.category !== undefined)
+            item.category = itemData.category;
+          if (itemData.quantity !== undefined)
+            item.quantity = itemData.quantity;
+          if (itemData.unitPrice !== undefined)
+            item.unitPrice = itemData.unitPrice;
+          if (itemData.totalPrice !== undefined)
+            item.totalPrice = itemData.totalPrice;
           await this.receiptItemsRepository.save(item);
         } else {
           // 新規アイテムの作成
@@ -182,11 +202,17 @@ export class ReceiptsService {
       }
     }
 
-    return this.receiptsRepository.findOne({ where: { id: receiptId }, relations: ['items'] }) as Promise<Receipt>;
+    return this.receiptsRepository.findOne({
+      where: { id: receiptId },
+      relations: ['items'],
+    }) as Promise<Receipt>;
   }
 
   async deleteReceipt(receiptId: string, userId: string): Promise<void> {
-    const receipt = await this.receiptsRepository.findOneBy({ id: receiptId, userId });
+    const receipt = await this.receiptsRepository.findOneBy({
+      id: receiptId,
+      userId,
+    });
     if (!receipt) {
       throw new NotFoundException(`レシートが見つかりません: ${receiptId}`);
     }
@@ -220,23 +246,33 @@ export class ReceiptsService {
       });
     }
 
-    const rows = await qb.getRawMany() as { id: string }[];
-    receipt.possibleDuplicateIds = rows.length > 0 ? rows.map((r) => r.id) : null;
+    const rows = await qb.getRawMany<{ id: string }>();
+    receipt.possibleDuplicateIds =
+      rows.length > 0 ? rows.map((r) => r.id) : null;
     await this.receiptsRepository.save(receipt);
   }
 
-  async getReceiptImage(receiptId: string, userId: string): Promise<{ buffer: Buffer; mimeType: string }> {
-    const receipt = await this.receiptsRepository.findOneBy({ id: receiptId, userId });
+  async getReceiptImage(
+    receiptId: string,
+    userId: string,
+  ): Promise<{ buffer: Buffer; mimeType: string }> {
+    const receipt = await this.receiptsRepository.findOneBy({
+      id: receiptId,
+      userId,
+    });
     if (!receipt) {
       throw new NotFoundException(`レシートが見つかりません: ${receiptId}`);
     }
 
     const ext = receipt.s3Key.split('.').pop()?.toLowerCase() ?? '';
     const mimeType =
-      ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
-      : ext === 'png' ? 'image/png'
-      : ext === 'webp' ? 'image/webp'
-      : 'application/octet-stream';
+      ext === 'jpg' || ext === 'jpeg'
+        ? 'image/jpeg'
+        : ext === 'png'
+          ? 'image/png'
+          : ext === 'webp'
+            ? 'image/webp'
+            : 'application/octet-stream';
 
     const buffer = await this.s3Service.getObject(receipt.s3Key);
     return { buffer, mimeType };
@@ -265,57 +301,84 @@ export class ReceiptsService {
     type RawTotal = { total: string };
     type RawCategoryTotal = { category: string | null; total: string };
     type RawMonthTotal = { month: string; total: string };
-    type RawMonthCategoryTotal = { month: string; category: string | null; total: string };
+    type RawMonthCategoryTotal = {
+      month: string;
+      category: string | null;
+      total: string;
+    };
 
-    const [totalResult, byCategory, byMonth, byMonthCategory] = await Promise.all([
-      this.receiptsRepository
-        .createQueryBuilder('receipt')
-        .select('COALESCE(SUM(receipt.total), 0)', 'total')
-        .where('receipt.user_id = :userId', { userId })
-        .andWhere('receipt.status = :status', { status: ReceiptStatus.COMPLETED })
-        .andWhere('receipt.purchased_at >= :from AND receipt.purchased_at < :to', { from, to })
-        .getRawOne() as Promise<RawTotal | undefined>,
+    const [totalResult, byCategory, byMonth, byMonthCategory] =
+      await Promise.all([
+        this.receiptsRepository
+          .createQueryBuilder('receipt')
+          .select('COALESCE(SUM(receipt.total), 0)', 'total')
+          .where('receipt.user_id = :userId', { userId })
+          .andWhere('receipt.status = :status', {
+            status: ReceiptStatus.COMPLETED,
+          })
+          .andWhere(
+            'receipt.purchased_at >= :from AND receipt.purchased_at < :to',
+            { from, to },
+          )
+          .getRawOne<RawTotal>(),
 
-      this.receiptItemsRepository
-        .createQueryBuilder('item')
-        .innerJoin('item.receipt', 'receipt')
-        .select('item.category', 'category')
-        .addSelect('SUM(item.total_price)', 'total')
-        .where('receipt.user_id = :userId', { userId })
-        .andWhere('receipt.status = :status', { status: ReceiptStatus.COMPLETED })
-        .andWhere('receipt.purchased_at >= :from AND receipt.purchased_at < :to', { from, to })
-        .groupBy('item.category')
-        .orderBy('total', 'DESC')
-        .getRawMany() as Promise<RawCategoryTotal[]>,
+        this.receiptItemsRepository
+          .createQueryBuilder('item')
+          .innerJoin('item.receipt', 'receipt')
+          .select('item.category', 'category')
+          .addSelect('SUM(item.total_price)', 'total')
+          .where('receipt.user_id = :userId', { userId })
+          .andWhere('receipt.status = :status', {
+            status: ReceiptStatus.COMPLETED,
+          })
+          .andWhere(
+            'receipt.purchased_at >= :from AND receipt.purchased_at < :to',
+            { from, to },
+          )
+          .groupBy('item.category')
+          .orderBy('total', 'DESC')
+          .getRawMany<RawCategoryTotal>(),
 
-      this.receiptsRepository
-        .createQueryBuilder('receipt')
-        .select('EXTRACT(MONTH FROM receipt.purchased_at)', 'month')
-        .addSelect('COALESCE(SUM(receipt.total), 0)', 'total')
-        .where('receipt.user_id = :userId', { userId })
-        .andWhere('receipt.status = :status', { status: ReceiptStatus.COMPLETED })
-        .andWhere('receipt.purchased_at >= :from AND receipt.purchased_at < :to', { from, to })
-        .groupBy('month')
-        .orderBy('month', 'ASC')
-        .getRawMany() as Promise<RawMonthTotal[]>,
+        this.receiptsRepository
+          .createQueryBuilder('receipt')
+          .select('EXTRACT(MONTH FROM receipt.purchased_at)', 'month')
+          .addSelect('COALESCE(SUM(receipt.total), 0)', 'total')
+          .where('receipt.user_id = :userId', { userId })
+          .andWhere('receipt.status = :status', {
+            status: ReceiptStatus.COMPLETED,
+          })
+          .andWhere(
+            'receipt.purchased_at >= :from AND receipt.purchased_at < :to',
+            { from, to },
+          )
+          .groupBy('month')
+          .orderBy('month', 'ASC')
+          .getRawMany<RawMonthTotal>(),
 
-      this.receiptItemsRepository
-        .createQueryBuilder('item')
-        .innerJoin('item.receipt', 'receipt')
-        .select('EXTRACT(MONTH FROM receipt.purchased_at)', 'month')
-        .addSelect('item.category', 'category')
-        .addSelect('SUM(item.total_price)', 'total')
-        .where('receipt.user_id = :userId', { userId })
-        .andWhere('receipt.status = :status', { status: ReceiptStatus.COMPLETED })
-        .andWhere('receipt.purchased_at >= :from AND receipt.purchased_at < :to', { from, to })
-        .groupBy('month')
-        .addGroupBy('item.category')
-        .orderBy('month', 'ASC')
-        .getRawMany() as Promise<RawMonthCategoryTotal[]>,
-    ]);
+        this.receiptItemsRepository
+          .createQueryBuilder('item')
+          .innerJoin('item.receipt', 'receipt')
+          .select('EXTRACT(MONTH FROM receipt.purchased_at)', 'month')
+          .addSelect('item.category', 'category')
+          .addSelect('SUM(item.total_price)', 'total')
+          .where('receipt.user_id = :userId', { userId })
+          .andWhere('receipt.status = :status', {
+            status: ReceiptStatus.COMPLETED,
+          })
+          .andWhere(
+            'receipt.purchased_at >= :from AND receipt.purchased_at < :to',
+            { from, to },
+          )
+          .groupBy('month')
+          .addGroupBy('item.category')
+          .orderBy('month', 'ASC')
+          .getRawMany<RawMonthCategoryTotal>(),
+      ]);
 
     // 1〜12月すべてのエントリを返す（データなし月は0）
-    const monthMap = new Map(byMonth.map((r) => [Number(r.month), Number(r.total)]));
+    const monthMap = new Map(
+      byMonth.map((r) => [Number(r.month), Number(r.total)]),
+    );
     const allMonths = Array.from({ length: 12 }, (_, i) => ({
       month: i + 1,
       total: monthMap.get(i + 1) ?? 0,
@@ -341,7 +404,11 @@ export class ReceiptsService {
     userId: string,
     year: number,
     month: number,
-  ): Promise<{ total: number; currency: string; byCategory: { category: string; total: number }[] }> {
+  ): Promise<{
+    total: number;
+    currency: string;
+    byCategory: { category: string; total: number }[];
+  }> {
     const from = `${year}-${String(month).padStart(2, '0')}-01`;
     const nextMonth = month === 12 ? 1 : month + 1;
     const nextYear = month === 12 ? year + 1 : year;
@@ -355,9 +422,14 @@ export class ReceiptsService {
         .createQueryBuilder('receipt')
         .select('COALESCE(SUM(receipt.total), 0)', 'total')
         .where('receipt.user_id = :userId', { userId })
-        .andWhere('receipt.status = :status', { status: ReceiptStatus.COMPLETED })
-        .andWhere('receipt.purchased_at >= :from AND receipt.purchased_at < :to', { from, to })
-        .getRawOne() as Promise<RawTotal | undefined>,
+        .andWhere('receipt.status = :status', {
+          status: ReceiptStatus.COMPLETED,
+        })
+        .andWhere(
+          'receipt.purchased_at >= :from AND receipt.purchased_at < :to',
+          { from, to },
+        )
+        .getRawOne<RawTotal>(),
 
       this.receiptItemsRepository
         .createQueryBuilder('item')
@@ -365,11 +437,16 @@ export class ReceiptsService {
         .select('item.category', 'category')
         .addSelect('SUM(item.total_price)', 'total')
         .where('receipt.user_id = :userId', { userId })
-        .andWhere('receipt.status = :status', { status: ReceiptStatus.COMPLETED })
-        .andWhere('receipt.purchased_at >= :from AND receipt.purchased_at < :to', { from, to })
+        .andWhere('receipt.status = :status', {
+          status: ReceiptStatus.COMPLETED,
+        })
+        .andWhere(
+          'receipt.purchased_at >= :from AND receipt.purchased_at < :to',
+          { from, to },
+        )
         .groupBy('item.category')
         .orderBy('total', 'DESC')
-        .getRawMany() as Promise<RawCategoryTotal[]>,
+        .getRawMany<RawCategoryTotal>(),
     ]);
 
     return {

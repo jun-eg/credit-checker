@@ -51,7 +51,7 @@ export class SpendingToolService {
   ): Promise<SpendingTotal> {
     const f = from ?? ALL_TIME_FROM;
     const t = to ?? ALL_TIME_TO;
-    const result = (await this.receiptsRepository
+    const result = await this.receiptsRepository
       .createQueryBuilder('receipt')
       .select('COALESCE(SUM(receipt.total), 0)', 'total')
       .where('receipt.user_id = :userId', { userId })
@@ -60,7 +60,7 @@ export class SpendingToolService {
         from: f,
         to: `${t} 23:59:59`,
       })
-      .getRawOne()) as RawTotal | undefined;
+      .getRawOne<RawTotal>();
 
     return {
       total: Number(result?.total ?? 0),
@@ -75,7 +75,7 @@ export class SpendingToolService {
   ): Promise<CategorySpending[]> {
     const f = from ?? ALL_TIME_FROM;
     const t = to ?? ALL_TIME_TO;
-    const rows = (await this.receiptItemsRepository
+    const rows = await this.receiptItemsRepository
       .createQueryBuilder('item')
       .innerJoin('item.receipt', 'receipt')
       .select('item.category', 'category')
@@ -88,7 +88,7 @@ export class SpendingToolService {
       })
       .groupBy('item.category')
       .orderBy('total', 'DESC')
-      .getRawMany()) as RawCategoryTotal[];
+      .getRawMany<RawCategoryTotal>();
 
     return rows.map((row) => ({
       category: row.category ?? 'その他',
@@ -127,9 +127,7 @@ export class SpendingToolService {
       );
     }
 
-    const receipts = await qb
-      .orderBy('receipt.purchased_at', 'DESC')
-      .getMany();
+    const receipts = await qb.orderBy('receipt.purchased_at', 'DESC').getMany();
 
     return receipts.map((r: Receipt) => ({
       id: r.id,
@@ -162,7 +160,7 @@ export class SpendingToolService {
           'receipt.purchased_at >= :from AND receipt.purchased_at < :to',
           { from, to },
         )
-        .getRawOne() as Promise<RawTotal | undefined>,
+        .getRawOne<RawTotal>(),
 
       this.receiptItemsRepository
         .createQueryBuilder('item')
@@ -179,7 +177,7 @@ export class SpendingToolService {
         )
         .groupBy('item.category')
         .orderBy('total', 'DESC')
-        .getRawMany() as Promise<RawCategoryTotal[]>,
+        .getRawMany<RawCategoryTotal>(),
     ]);
 
     return {
