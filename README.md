@@ -58,24 +58,24 @@ cd credit-checker
 cp .env.example .env
 ```
 
-`.env` を開き、空欄の項目を埋める。変更が必要な値は以下のみ：
+`.env` を開き、以下の2つを外部サービスから取得して設定する：
 
-```env
-AUTH_GOOGLE_ID=your_google_client_id
-```
+| 変数 | 取得元 |
+|------|--------|
+| `AUTH_GOOGLE_ID` | Google Cloud Console → 認証情報 → OAuth 2.0 クライアント |
+| `AUTH_GOOGLE_SECRET` | 同上 |
+| `OPENAI_API_KEY` | OpenAI Platform → API keys |
 
-### 3. Strong Secret のセットアップ
+`JWT_SECRET` / `AUTH_SECRET` はダミー値のままで動作するため変更不要。
 
-Docker Compose はシークレットをファイルから読み込む。`secrets/` ディレクトリを作成し、各ファイルに値を書き込む。
+### 3. secrets/ ファイルの自動生成
 
 ```bash
-mkdir -p secrets
-echo "postgresql://credit_checker:password@postgres:5432/credit_checker_db" > secrets/database_url
-echo "$(openssl rand -base64 32)" > secrets/jwt_secret
-echo "$(openssl rand -base64 32)" > secrets/auth_secret
-echo "your_google_client_secret"                                             > secrets/auth_google_secret
-echo "your_openai_api_key"                                                   > secrets/openai_api_key
+./setup.sh
 ```
+
+`.env` の値を読み取り、Docker Compose が必要とする `secrets/` ファイルを自動生成する。
+`DATABASE_URL` は `POSTGRES_*` 変数から自動組み立てされる。
 
 > `secrets/` は `.gitignore` に含まれており、リポジトリにはコミットされない。
 
@@ -107,6 +107,7 @@ docker compose up
 
 - [アーキテクチャ概要](docs/architecture/overview.md)
 - [ADR 一覧](docs/adr/)
+- [初回セットアップ手順](docs/runbooks/initial-setup.md)
 - [デプロイ手順](docs/runbooks/deploy.md)
 - [ロールバック手順](docs/runbooks/rollback.md)
 - [ECS Exec 手順](docs/runbooks/ecs-exec.md)
