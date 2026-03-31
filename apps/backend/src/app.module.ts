@@ -22,7 +22,7 @@ import { secrets } from './config/secrets';
         () => ({
           JWT_SECRET: secrets.jwtSecret(),
           OPENAI_API_KEY: secrets.openaiApiKey(),
-          DATABASE_URL: secrets.databaseUrl(),
+          // DATABASE_URL は TypeOrmModule が secrets.databaseUrl() で直接取得するため登録不要
         }),
       ],
     }),
