@@ -183,8 +183,12 @@ export class ChatService {
       );
 
       // 次のループのためにmessages配列を更新
+      // SDK レスポンスオブジェクトをそのまま使うと内部状態が残り JSON シリアライズに
+      // 失敗することがあるため、structuredClone で plain object に変換してから push する
+      // （`function` プロパティへの直接アクセスは組み込み Function 型と名前衝突するため回避）
+      const plainToolCalls = structuredClone(message.tool_calls ?? []);
       messages.push(
-        { role: 'assistant', content: null, tool_calls: message.tool_calls },
+        { role: 'assistant', content: message.content ?? null, tool_calls: plainToolCalls },
         ...toolResults.map(
           (r): OpenAI.Chat.ChatCompletionToolMessageParam => ({
             role: 'tool',
