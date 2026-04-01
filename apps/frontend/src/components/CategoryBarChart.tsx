@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
 import { PieChart, Pie, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { PieLabelRenderProps, TooltipContentProps } from 'recharts';
 import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
@@ -66,9 +66,12 @@ function CustomTooltip({
   );
 }
 
+// useSyncExternalStore でサーバー/クライアントを区別する（useEffect+setState は lint 非推奨）
+const emptySubscribe = () => () => {};
+
 export function CategoryBarChart({ data, currency }: CategoryBarChartProps) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  // サーバー: false、クライアント: true を返す。ハイドレーション時は両者が一致する
+  const isClient = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
   if (data.length === 0) {
     return (
@@ -77,7 +80,7 @@ export function CategoryBarChart({ data, currency }: CategoryBarChartProps) {
   }
 
   // Recharts は SSR でハイドレーションミスマッチを起こすため、クライアントのみでレンダリング
-  if (!mounted) return <div className="h-80" />;
+  if (!isClient) return <div className="h-80" />;
 
   const chartData = data.map((item, i) => ({
     name: item.category,
