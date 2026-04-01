@@ -1,5 +1,6 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import {
   BarChart,
   Bar,
@@ -90,7 +91,16 @@ function CustomTooltip({
   );
 }
 
+// useSyncExternalStore でサーバー/クライアントを区別する（useEffect+setState は lint 非推奨）
+const emptySubscribe = () => () => {};
+
 export function MonthlyBarChart({ data, currency }: MonthlyBarChartProps) {
+  // サーバー: false、クライアント: true を返す。ハイドレーション時は両者が一致する
+  const isClient = useSyncExternalStore(emptySubscribe, () => true, () => false);
+
+  // Recharts は SSR でハイドレーションミスマッチを起こすため、クライアントのみでレンダリング
+  if (!isClient) return <div className="h-[280px]" />;
+
   // カテゴリ一覧（年間合計順に並べる）
   const categoryTotals = new Map<string, number>();
   for (const row of data) {
