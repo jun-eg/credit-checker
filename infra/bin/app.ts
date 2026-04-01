@@ -46,6 +46,7 @@ new BootstrapStack(app, 'Bootstrap', {
 });
 
 const network = new NetworkStack(app, `${config.envName}Network`, {
+  appName,
   config,
   env: config.env,
 });

@@ -119,7 +119,7 @@ jobs:
             --filters 'Name=tag:Name,Values=*Public*' \
             --query 'Subnets[0].SubnetId' --output text)
           SG_ID=$(aws ec2 describe-security-groups \
-            --filters 'Name=tag:Name,Values=*FargateSg*' \
+            --filters "Name=tag:Name,Values=${{ vars.APP_NAME }}-FargateSg-${{ inputs.environment }}" \
             --query 'SecurityGroups[0].GroupId' --output text)
 
           TASK_ARN=$(aws ecs run-task \
