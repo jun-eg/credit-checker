@@ -11,6 +11,7 @@ const TEST_APP_NAME = 'test-app';
 function buildAppTemplate(config: typeof devConfig) {
   const app = new cdk.App();
   const network = new NetworkStack(app, `${config.envName}Network`, {
+    appName: TEST_APP_NAME,
     config,
     env: config.env,
   });

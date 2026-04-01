@@ -9,6 +9,7 @@ describe('NetworkStack', () => {
   beforeAll(() => {
     const app = new cdk.App();
     const stack = new NetworkStack(app, 'TestNetwork', {
+      appName: 'test-app',
       config: devConfig,
       env: devConfig.env,
     });
