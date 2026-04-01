@@ -26,59 +26,96 @@ docker compose up
 
 ## AWS 環境（dev / prod）
 
-### 1. CDK deploy
+通常のデプロイは GitHub Actions（workflow_dispatch または push）で行う。
+以下は初回のみ必要な手順。
+
+### 前提条件
+
+`infra/.env.infra` の AWS 認証情報を設定する。
+デプロイ対象（dev または prod）に応じてプロファイルを切り替えること。
+
+```bash
+# dev の場合
+aws sso login --profile dev
+aws configure export-credentials --profile dev --format env
+# → 出力された AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_SESSION_TOKEN を .env.infra に貼り付ける
+
+# prod の場合
+aws sso login --profile prod
+aws configure export-credentials --profile prod --format env
+```
+
+### 1. CDK bootstrap（各アカウントで1回のみ）
+
+CDK がデプロイに使う S3 バケット・IAM ロールを作成する。
 
 ```bash
 cd infra
-npx cdk deploy DevNetwork DevData DevApp DevEdge
+npm ci
+
+# dev
+npx cdk bootstrap aws://502140064658/ap-northeast-1
+
+# prod（.env.infra の認証情報を prod 用に差し替えてから実行）
+npx cdk bootstrap aws://882856016971/ap-northeast-1
 ```
 
-### 2. Secrets Manager を更新する
+### 2. Bootstrap stack deploy（各アカウントで1回のみ）
+
+GitHub Actions OIDC プロバイダーとデプロイロールを作成する。
+
+```bash
+# dev
+npx cdk deploy Bootstrap --require-approval never
+
+# prod（.env.infra の認証情報と DEV_AWS_ACCOUNT_ID を prod 用に差し替えてから実行）
+npx cdk deploy Bootstrap -c env=prod --require-approval never
+```
+
+### 3. GitHub Secrets / Variables の設定
+
+GitHub → リポジトリ → **Settings → Secrets and variables → Actions**
+
+**Secrets：**
+
+| 名前 | 値 |
+|------|-----|
+| `DEV_AWS_ACCOUNT_ID` | `502140064658` |
+| `PROD_AWS_ACCOUNT_ID` | `882856016971` |
+
+**Variables：**
+
+| 名前 | 値 |
+|------|-----|
+| `APP_NAME` | `credit-checker` |
+| `AWS_REGION` | `ap-northeast-1` |
+| `AUTH_GOOGLE_ID` | Google Cloud Console から取得 |
+
+### 4. 初回デプロイ
+
+GitHub Actions → **Deploy** → **Run workflow** から dev 環境に向けて実行する。
+
+### 5. Secrets Manager を更新する
 
 **この手順は ECS サービス起動前に必ず実施すること。**
 `REPLACE_ME` のままでは起動後にアプリが正常動作しない。
 
-CDK deploy により以下が自動生成済み（手動設定不要）：
-- `/<app-name>/<env>/jwt-secret` — CDK が自動生成
-- `/<app-name>/<env>/auth-secret` — CDK が自動生成
-- RDS 認証情報（username / password / host）— RDS が自動生成。ECS には個別フィールドとして注入され、コンテナ起動時に DATABASE_URL を組み立てる
-
-手動設定が必要なのは `app-secrets` の2フィールドのみ：
-
 ```bash
 aws secretsmanager update-secret \
-  --secret-id "/<app-name>/<env>/app-secrets" \
+  --secret-id "/credit-checker/dev/app-secrets" \
   --secret-string '{
     "auth_google_secret": "<Google Cloud Console から取得>",
     "openai_api_key":     "<OpenAI から取得>"
   }' \
-  --region ap-northeast-1
+  --region ap-northeast-1 --profile dev
 ```
-
-`<app-name>` は `APP_NAME`（例: `credit-checker`）、`<env>` は `dev` または `prod`。
 
 設定内容を確認する：
 
 ```bash
 aws secretsmanager get-secret-value \
-  --secret-id "/<app-name>/<env>/app-secrets" \
-  --query SecretString --output text | jq .
-```
-
-### 3. ECS タスクを再起動して反映
-
-```bash
-aws ecs update-service \
-  --cluster <app-name>-<env> \
-  --service <app-name>-backend-<env> \
-  --force-new-deployment \
-  --region ap-northeast-1
-
-aws ecs update-service \
-  --cluster <app-name>-<env> \
-  --service <app-name>-frontend-<env> \
-  --force-new-deployment \
-  --region ap-northeast-1
+  --secret-id "/credit-checker/dev/app-secrets" \
+  --query SecretString --output text --profile dev | jq .
 ```
 
 ---

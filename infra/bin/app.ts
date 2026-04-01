@@ -2,18 +2,28 @@
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 import * as cdk from 'aws-cdk-lib';
-import { devConfig } from '../config/dev';
-import { prodConfig } from '../config/prod';
-import { BootstrapStack } from '../lib/bootstrap/bootstrap-stack';
-import { NetworkStack } from '../lib/network/network-stack';
-import { DataStack } from '../lib/data/data-stack';
-import { AppStack } from '../lib/app/app-stack';
-import { EdgeStack } from '../lib/edge/edge-stack';
 
 // .env.infra を読み込む（ローカルから CDK を実行する際に使用）
 // .env（LocalStack 用ダミー認証情報）とは分離し、実 AWS 認証情報を汚染しない
 // GitHub Actions では環境変数が直接注入されるため影響なし
+// import より先に dotenv を実行しないと process.env が config に反映されないため require を使用
 dotenv.config({ path: path.resolve(__dirname, '../../.env.infra') });
+
+// dotenv 実行後に require することで process.env の値が正しく反映される
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { devConfig } = require('../config/dev');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { prodConfig } = require('../config/prod');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { BootstrapStack } = require('../lib/bootstrap/bootstrap-stack');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { NetworkStack } = require('../lib/network/network-stack');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { DataStack } = require('../lib/data/data-stack');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { AppStack } = require('../lib/app/app-stack');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { EdgeStack } = require('../lib/edge/edge-stack');
 
 const app = new cdk.App();
 const targetEnv = app.node.tryGetContext('env') ?? 'dev';
