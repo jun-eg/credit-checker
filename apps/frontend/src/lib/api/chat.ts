@@ -6,11 +6,12 @@ import {
   ListMessagesResponse,
 } from '../../types/chat';
 
-// SSRではNginxを経由しないため、バックエンドコンテナに直接通信する
+// SSR: BACKEND_URL（サーバー側env var）でバックエンドに直接通信
+// クライアント: /api/v1 の相対パス（本番はALBが転送、ローカルはNext.js rewriteがプロキシ）
 const backendUrl =
   typeof window === 'undefined'
     ? process.env.BACKEND_URL
-    : '/api/backend';
+    : '/api/v1';
 
 async function request<T>(
   path: string,
