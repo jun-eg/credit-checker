@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { PieChart, Pie, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { PieLabelRenderProps, TooltipContentProps } from 'recharts';
 import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
@@ -66,11 +67,17 @@ function CustomTooltip({
 }
 
 export function CategoryBarChart({ data, currency }: CategoryBarChartProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   if (data.length === 0) {
     return (
       <p className="text-sm text-zinc-400 dark:text-zinc-600">データがありません</p>
     );
   }
+
+  // Recharts は SSR でハイドレーションミスマッチを起こすため、クライアントのみでレンダリング
+  if (!mounted) return <div className="h-80" />;
 
   const chartData = data.map((item, i) => ({
     name: item.category,

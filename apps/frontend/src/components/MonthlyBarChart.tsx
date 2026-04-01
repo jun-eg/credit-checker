@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
   BarChart,
   Bar,
@@ -91,6 +92,12 @@ function CustomTooltip({
 }
 
 export function MonthlyBarChart({ data, currency }: MonthlyBarChartProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  // Recharts は SSR でハイドレーションミスマッチを起こすため、クライアントのみでレンダリング
+  if (!mounted) return <div className="h-[280px]" />;
+
   // カテゴリ一覧（年間合計順に並べる）
   const categoryTotals = new Map<string, number>();
   for (const row of data) {
