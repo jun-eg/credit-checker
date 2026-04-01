@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import * as path from 'path';
+import * as dotenv from 'dotenv';
 import * as cdk from 'aws-cdk-lib';
 import { devConfig } from '../config/dev';
 import { prodConfig } from '../config/prod';
@@ -8,12 +10,20 @@ import { DataStack } from '../lib/data/data-stack';
 import { AppStack } from '../lib/app/app-stack';
 import { EdgeStack } from '../lib/edge/edge-stack';
 
+// .env.infra を読み込む（ローカルから CDK を実行する際に使用）
+// .env（LocalStack 用ダミー認証情報）とは分離し、実 AWS 認証情報を汚染しない
+// GitHub Actions では環境変数が直接注入されるため影響なし
+dotenv.config({ path: path.resolve(__dirname, '../../.env.infra') });
+
 const app = new cdk.App();
 const targetEnv = app.node.tryGetContext('env') ?? 'dev';
 const config = targetEnv === 'prod' ? prodConfig : devConfig;
 
-const appName = app.node.tryGetContext('appName') as string | undefined;
-if (!appName) throw new Error('CDK context "appName" is required. Pass -c appName=<name>');
+// -c appName=<name> を優先し、未指定時は .env.infra の APP_NAME にフォールバック
+const appName =
+  (app.node.tryGetContext('appName') as string | undefined) ??
+  process.env.APP_NAME;
+if (!appName) throw new Error('appName が未設定です。.env.infra に APP_NAME を定義するか -c appName=<name> で渡してください');
 
 // GitHub Actions OIDC プロバイダーと deploy ロールを管理するスタック
 // 初回のみローカルの AWS 認証情報で手動実行が必要:
