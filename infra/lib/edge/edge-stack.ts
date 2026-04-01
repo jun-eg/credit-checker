@@ -105,6 +105,8 @@ export class EdgeStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
         originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
+        // Next.js Server Action は POST を使用するため ALL を許可する
+        allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
       },
       domainNames: [config.domain],
       certificate,
