@@ -60,7 +60,7 @@ export class EdgeStack extends cdk.Stack {
       defaultAction: elbv2.ListenerAction.fixedResponse(404),
     });
 
-    // /api/* → backend
+    // /api/v1/* → backend（/api/auth/* 等の Next.js ルートを誤ってバックエンドに転送しないよう v1 に限定）
     const backendTargetGroup = new elbv2.ApplicationTargetGroup(this, 'BackendTg', {
       vpc,
       port: ports.backend,
@@ -74,7 +74,7 @@ export class EdgeStack extends cdk.Stack {
 
     httpsListener.addAction('BackendAction', {
       priority: 10,
-      conditions: [elbv2.ListenerCondition.pathPatterns(['/api/*'])],
+      conditions: [elbv2.ListenerCondition.pathPatterns(['/api/v1/*'])],
       action: elbv2.ListenerAction.forward([backendTargetGroup]),
     });
 
