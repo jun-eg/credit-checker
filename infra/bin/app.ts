@@ -23,6 +23,8 @@ const { DataStack } = require('../lib/data/data-stack');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { AppStack } = require('../lib/app/app-stack');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
+const { CertificateStack } = require('../lib/edge/certificate-stack');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { EdgeStack } = require('../lib/edge/edge-stack');
 
 const app = new cdk.App();
@@ -69,9 +71,18 @@ const appStack = new AppStack(app, `${config.envName}App`, {
   appBucket: data.appBucket,
 });
 
+// CloudFront は us-east-1 の証明書が必須のため専用スタックで作成
+const certStack = new CertificateStack(app, `${config.envName}Certificate`, {
+  domain: config.domain,
+  env: { account: config.env.account, region: 'us-east-1' },
+  crossRegionReferences: true,
+});
+
 new EdgeStack(app, `${config.envName}Edge`, {
   config,
+  certificate: certStack.certificate,
   env: config.env,
+  crossRegionReferences: true,
   albSecurityGroup: network.albSecurityGroup,
   frontendService: appStack.frontendService,
   backendService: appStack.backendService,

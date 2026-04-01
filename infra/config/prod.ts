@@ -12,7 +12,7 @@ export const prodConfig: EnvironmentConfig = {
     backend: { minCapacity: 1, maxCapacity: 3 },
   },
   rds: {
-    instanceType: 'db.t4g.micro',
+    instanceType: 't4g.micro',
     multiAz: true,
     databaseName: 'credit_checker',
   },

@@ -12,6 +12,7 @@ import { EnvironmentConfig } from '../../config';
 
 interface EdgeStackProps extends cdk.StackProps {
   config: EnvironmentConfig;
+  certificate: acm.ICertificate;
   albSecurityGroup: ec2.SecurityGroup;
   frontendService: ecs.FargateService;
   backendService: ecs.FargateService;
@@ -21,14 +22,15 @@ export class EdgeStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: EdgeStackProps) {
     super(scope, id, props);
 
-    const { config, albSecurityGroup, frontendService, backendService } = props;
+    const { config, certificate, albSecurityGroup, frontendService, backendService } = props;
     const { ports } = config;
 
     const hostedZone = route53.HostedZone.fromLookup(this, 'HostedZone', {
       domainName: config.domain.split('.').slice(-2).join('.'),
     });
 
-    const certificate = new acm.Certificate(this, 'Certificate', {
+    // ALB は ap-northeast-1 の証明書が必要（CloudFront 用の us-east-1 証明書とは別）
+    const albCertificate = new acm.Certificate(this, 'AlbCertificate', {
       domainName: config.domain,
       subjectAlternativeNames: [`*.${config.domain}`],
       validation: acm.CertificateValidation.fromDns(hostedZone),
@@ -54,7 +56,7 @@ export class EdgeStack extends cdk.Stack {
 
     const httpsListener = alb.addListener('HttpsListener', {
       port: 443,
-      certificates: [certificate],
+      certificates: [albCertificate],
       defaultAction: elbv2.ListenerAction.fixedResponse(404),
     });
 

@@ -12,12 +12,12 @@ export const devConfig: EnvironmentConfig = {
     backend: { minCapacity: 0, maxCapacity: 2 },
   },
   rds: {
-    instanceType: 'db.t4g.micro',
+    instanceType: 't4g.micro',
     multiAz: false,
     databaseName: 'credit_checker',
   },
   vpc: {
-    maxAzs: 1,
+    maxAzs: 2,
   },
   ports: {
     frontend: 3000,
