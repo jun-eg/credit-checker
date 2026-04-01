@@ -184,15 +184,9 @@ export class ChatService {
 
       // 次のループのためにmessages配列を更新
       // SDK レスポンスオブジェクトをそのまま使うと内部状態が残り JSON シリアライズに
-      // 失敗することがあるため、plain object に変換してから push する
-      // `function` は予約語のためデストラクチャリングで別名に変換し型安全に再構築する
-      const plainToolCalls = (message.tool_calls ?? []).map(
-        ({ id, type, function: fn }) => ({
-          id,
-          type,
-          function: { name: fn.name, arguments: fn.arguments },
-        }),
-      );
+      // 失敗することがあるため、structuredClone で plain object に変換してから push する
+      // （`function` プロパティへの直接アクセスは組み込み Function 型と名前衝突するため回避）
+      const plainToolCalls = structuredClone(message.tool_calls ?? []);
       messages.push(
         { role: 'assistant', content: message.content ?? null, tool_calls: plainToolCalls },
         ...toolResults.map(
