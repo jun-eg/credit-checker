@@ -9,19 +9,20 @@ import { DataStack } from '../lib/data/data-stack';
 import { AppStack } from '../lib/app/app-stack';
 import { EdgeStack } from '../lib/edge/edge-stack';
 
-// プロジェクトルートの .env を読み込む（ローカル開発用）
+// .env.infra を読み込む（ローカルから CDK を実行する際に使用）
+// .env（LocalStack 用ダミー認証情報）とは分離し、実 AWS 認証情報を汚染しない
 // GitHub Actions では環境変数が直接注入されるため影響なし
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env.infra') });
 
 const app = new cdk.App();
 const targetEnv = app.node.tryGetContext('env') ?? 'dev';
 const config = targetEnv === 'prod' ? prodConfig : devConfig;
 
-// -c appName=<name> を優先し、未指定時は .env の APP_NAME にフォールバック
+// -c appName=<name> を優先し、未指定時は .env.infra の APP_NAME にフォールバック
 const appName =
   (app.node.tryGetContext('appName') as string | undefined) ??
   process.env.APP_NAME;
-if (!appName) throw new Error('appName が未設定です。.env に APP_NAME を定義するか -c appName=<name> で渡してください');
+if (!appName) throw new Error('appName が未設定です。.env.infra に APP_NAME を定義するか -c appName=<name> で渡してください');
 
 const network = new NetworkStack(app, `${config.envName}Network`, {
   config,
