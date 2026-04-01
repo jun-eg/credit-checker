@@ -2,10 +2,12 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  // CloudFront → ALB 経由だと Host ヘッダーが ALB の DNS 名に書き換わり
-  // Next.js の Server Action CSRF チェックが 403 を返すため許可ドメインを明示する
-  serverActions: {
-    allowedOrigins: ['dev.jun-eg.site', 'jun-eg.site'],
+  experimental: {
+    // CloudFront → ALB 経由だと Host ヘッダーが ALB の DNS 名に書き換わり
+    // Next.js の Server Action CSRF チェックが 403 を返すため許可ドメインを明示する
+    serverActions: {
+      allowedOrigins: ['dev.jun-eg.site', 'jun-eg.site'],
+    },
   },
   async rewrites() {
     // 本番は ALB がルーティングするため不要
