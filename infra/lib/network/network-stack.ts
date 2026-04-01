@@ -4,6 +4,7 @@ import { Construct } from 'constructs';
 import { EnvironmentConfig } from '../../config';
 
 interface NetworkStackProps extends cdk.StackProps {
+  appName: string;
   config: EnvironmentConfig;
 }
 
@@ -16,7 +17,7 @@ export class NetworkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: NetworkStackProps) {
     super(scope, id, props);
 
-    const { config } = props;
+    const { appName, config } = props;
 
     this.vpc = new ec2.Vpc(this, 'Vpc', {
       maxAzs: config.vpc.maxAzs,
@@ -53,6 +54,9 @@ export class NetworkStack extends cdk.Stack {
       // 最小権限：明示的に許可したアウトバウンドのみ許可
       allowAllOutbound: false,
     });
+    // CDKはSGにNameタグを自動付与しないため明示的に設定する
+    // 同一アカウントに複数アプリが共存する構成のためappNameで識別する
+    cdk.Tags.of(this.fargateSecurityGroup).add('Name', `${appName}-FargateSg-${config.envName.toLowerCase()}`);
     // ALB からのトラフィックのみ受け入れる（frontend / backend のアプリポートに限定）
     this.fargateSecurityGroup.addIngressRule(
       ec2.Peer.securityGroupId(this.albSecurityGroup.securityGroupId),
