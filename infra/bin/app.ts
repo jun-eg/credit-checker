@@ -2,6 +2,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { devConfig } from '../config/dev';
 import { prodConfig } from '../config/prod';
+import { BootstrapStack } from '../lib/bootstrap/bootstrap-stack';
 import { NetworkStack } from '../lib/network/network-stack';
 import { DataStack } from '../lib/data/data-stack';
 import { AppStack } from '../lib/app/app-stack';
@@ -13,6 +14,14 @@ const config = targetEnv === 'prod' ? prodConfig : devConfig;
 
 const appName = app.node.tryGetContext('appName') as string | undefined;
 if (!appName) throw new Error('CDK context "appName" is required. Pass -c appName=<name>');
+
+// GitHub Actions OIDC プロバイダーと deploy ロールを管理するスタック
+// 初回のみローカルの AWS 認証情報で手動実行が必要:
+//   npx cdk deploy Bootstrap -c env=dev -c appName=<name>
+new BootstrapStack(app, 'Bootstrap', {
+  githubRepo: 'jun-eg/credit-checker',
+  env: config.env,
+});
 
 const network = new NetworkStack(app, `${config.envName}Network`, {
   config,
