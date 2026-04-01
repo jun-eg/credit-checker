@@ -8,11 +8,15 @@ import {
   UploadReceiptResponse,
 } from '../../types/receipt';
 
-// SSRではNginxを経由しないため、バックエンドコンテナに直接通信する
+// SSR: バックエンドコンテナに直接通信
+// 本番クライアント: NEXT_PUBLIC_BACKEND_URL（ALBが /api/v1/* をバックエンドに転送）
+// ローカル開発クライアント: Next.js rewrite で /api/backend/* をバックエンドにプロキシ
 const backendUrl =
   typeof window === 'undefined'
     ? process.env.BACKEND_URL
-    : '/api/backend';
+    : process.env.NODE_ENV === 'production'
+      ? process.env.NEXT_PUBLIC_BACKEND_URL
+      : '/api/backend';
 
 export async function getReceipt(
   id: string,
