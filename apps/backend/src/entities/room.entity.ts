@@ -29,7 +29,7 @@ export class Room {
   @JoinColumn({ name: 'owner_id' })
   owner: User;
 
-  @OneToMany(() => RoomMember, (member) => member.room)
+  @OneToMany(() => RoomMember, (member: RoomMember) => member.room)
   members: RoomMember[];
 
   @CreateDateColumn({ name: 'created_at' })

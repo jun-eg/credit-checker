@@ -31,7 +31,7 @@ export class RoomMember {
   @CreateDateColumn({ name: 'joined_at' })
   joinedAt: Date;
 
-  @ManyToOne(() => Room, (room) => room.members, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Room, (room: Room) => room.members, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'room_id' })
   room: Room;
 
