@@ -127,17 +127,17 @@ export async function deleteReceipt(id: string, token: string): Promise<void> {
   }
 }
 
-export async function getReceiptImageUrl(id: string, token: string): Promise<string> {
-  const res = await fetch(`${backendUrl}/receipts/${id}/image`, {
+export async function getReceiptImagePresignedUrl(id: string, token: string): Promise<string> {
+  const res = await fetch(`${backendUrl}/receipts/${id}/image-url`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
   if (!res.ok) {
-    throw new Error(`画像の取得に失敗しました (${res.status})`);
+    throw new Error(`画像URLの取得に失敗しました (${res.status})`);
   }
 
-  const blob = await res.blob();
-  return URL.createObjectURL(blob);
+  const data = (await res.json()) as { url: string };
+  return data.url;
 }
 
 export async function uploadReceipt(

@@ -3,7 +3,7 @@ import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { AppHeader } from '../../../components/AppHeader';
 import { ReceiptDetailContent } from '../../../components/ReceiptDetailContent';
-import { getReceiptDetail } from '../../../lib/api/receipts';
+import { getReceiptDetail, getReceiptImagePresignedUrl } from '../../../lib/api/receipts';
 
 interface ReceiptDetailPageProps {
   params: Promise<{ id: string }>;
@@ -17,7 +17,10 @@ export default async function ReceiptDetailPage({ params }: ReceiptDetailPagePro
   }
 
   const { id } = await params;
-  const receipt = await getReceiptDetail(id, session.backendToken).catch(() => notFound());
+  const [receipt, imageUrl] = await Promise.all([
+    getReceiptDetail(id, session.backendToken).catch(() => notFound()),
+    getReceiptImagePresignedUrl(id, session.backendToken).catch(() => null),
+  ]);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
@@ -31,7 +34,7 @@ export default async function ReceiptDetailPage({ params }: ReceiptDetailPagePro
           ← レシート一覧
         </Link>
 
-        <ReceiptDetailContent receipt={receipt} token={session.backendToken} />
+        <ReceiptDetailContent receipt={receipt} imageUrl={imageUrl ?? undefined} />
       </main>
     </div>
   );

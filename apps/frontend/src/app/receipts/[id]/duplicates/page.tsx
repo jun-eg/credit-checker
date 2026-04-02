@@ -2,7 +2,7 @@ import { auth } from '../../../../../auth';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { AppHeader } from '../../../../components/AppHeader';
-import { getReceiptDetail } from '../../../../lib/api/receipts';
+import { getReceiptDetail, getReceiptImagePresignedUrl } from '../../../../lib/api/receipts';
 import { DuplicateConfirmContent } from './_components/DuplicateConfirmContent';
 
 interface DuplicateCheckPageProps {
@@ -33,9 +33,11 @@ export default async function DuplicateCheckPage({
     receipt.possibleDuplicateIds.length - 1,
   );
   const duplicateId = receipt.possibleDuplicateIds[duplicateIndex];
-  const duplicate = await getReceiptDetail(duplicateId, session.backendToken).catch(() =>
-    notFound(),
-  );
+  const [duplicate, imageUrl, duplicateImageUrl] = await Promise.all([
+    getReceiptDetail(duplicateId, session.backendToken).catch(() => notFound()),
+    getReceiptImagePresignedUrl(id, session.backendToken).catch(() => null),
+    getReceiptImagePresignedUrl(duplicateId, session.backendToken).catch(() => null),
+  ]);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
@@ -81,6 +83,8 @@ export default async function DuplicateCheckPage({
           receipt={receipt}
           duplicate={duplicate}
           token={session.backendToken}
+          imageUrl={imageUrl ?? undefined}
+          duplicateImageUrl={duplicateImageUrl ?? undefined}
           duplicateIndex={duplicateIndex}
           duplicateTotal={receipt.possibleDuplicateIds.length}
         />

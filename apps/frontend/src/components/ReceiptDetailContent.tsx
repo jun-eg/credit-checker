@@ -1,14 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { GetReceiptDetailResponse, ReceiptItemDetail, UpdateReceiptItemRequest } from '../types/receipt';
-import { getReceiptImageUrl } from '../lib/api/receipts';
 
 interface ViewProps {
   receipt: GetReceiptDetailResponse;
   editMode?: false;
-  token?: string;
+  imageUrl?: string;
 }
 
 interface EditProps {
@@ -103,44 +102,12 @@ const inputClass =
 export function ReceiptDetailContent(props: ReceiptDetailContentProps) {
   const { receipt } = props;
   const isEdit = props.editMode === true;
-  const token = !isEdit ? (props as ViewProps).token : undefined;
+  const imageUrl = !isEdit ? (props as ViewProps).imageUrl : undefined;
 
   const [storeName, setStoreName] = useState(receipt.storeName ?? '');
   const [purchasedAt, setPurchasedAt] = useState(toDateInputValue(receipt.purchasedAt));
   const [items, setItems] = useState<ItemState[]>(receipt.items.map(toItemState));
-
-  // receipt.id と token の組み合わせをキーに、取得結果をまとめて管理する
-  // ローディング状態はキーの一致/不一致から派生させることで effect 内の setState を不要にする
-  const [imageFetch, setImageFetch] = useState<{
-    key: string | null;
-    url: string | null;
-    error: boolean;
-  }>({ key: null, url: null, error: false });
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-
-  const imageFetchKey = token ? `${receipt.id}:${token}` : null;
-  const imageUrl = imageFetch.key === imageFetchKey ? imageFetch.url : null;
-  const imageStatus: 'idle' | 'loading' | 'error' =
-    imageFetch.error && imageFetch.key === imageFetchKey
-      ? 'error'
-      : imageFetchKey !== null && imageFetch.key !== imageFetchKey
-        ? 'loading'
-        : 'idle';
-
-  useEffect(() => {
-    if (!token) return;
-    const fetchKey = `${receipt.id}:${token}`;
-    let objectUrl: string | null = null;
-    getReceiptImageUrl(receipt.id, token)
-      .then((url) => {
-        objectUrl = url;
-        setImageFetch({ key: fetchKey, url, error: false });
-      })
-      .catch(() => setImageFetch({ key: fetchKey, url: null, error: true }));
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [receipt.id, token]);
 
   const updateItem = (
     localId: string,
@@ -218,34 +185,22 @@ export function ReceiptDetailContent(props: ReceiptDetailContentProps) {
       )}
 
       {/* レシート画像 */}
-      {token && (
+      {imageUrl && (
         <div className="overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-zinc-900">
-          {imageStatus === 'loading' && (
-            <div className="flex items-center justify-center p-8">
-              <p className="text-sm text-zinc-400 dark:text-zinc-600">画像を読み込み中…</p>
-            </div>
-          )}
-          {imageStatus === 'error' && (
-            <div className="flex items-center justify-center p-8">
-              <p className="text-sm text-red-400">画像の取得に失敗しました</p>
-            </div>
-          )}
-          {imageUrl && (
-            <button
-              onClick={() => setIsImageModalOpen(true)}
-              className="block w-full"
-              aria-label="レシート画像を拡大表示"
-            >
-              <Image
-                src={imageUrl}
-                alt="レシート画像"
-                width={800}
-                height={1200}
-                unoptimized
-                className="max-h-64 w-full object-contain"
-              />
-            </button>
-          )}
+          <button
+            onClick={() => setIsImageModalOpen(true)}
+            className="block w-full"
+            aria-label="レシート画像を拡大表示"
+          >
+            <Image
+              src={imageUrl}
+              alt="レシート画像"
+              width={800}
+              height={1200}
+              unoptimized
+              className="max-h-64 w-full object-contain"
+            />
+          </button>
         </div>
       )}
 
