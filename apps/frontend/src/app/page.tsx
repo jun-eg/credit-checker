@@ -11,7 +11,7 @@ export default async function Home() {
 
   const handleSignIn = async () => {
     'use server';
-    await signIn('google', { redirectTo: '/dashboard' });
+    await signIn('google', { redirectTo: '/credit-checker/dashboard' });
   };
 
   return (
