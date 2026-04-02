@@ -2,11 +2,11 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
+import sharp from 'sharp';
 import { Receipt, ReceiptStatus } from '../entities/receipt.entity';
 import { ReceiptItem } from '../entities/receipt-item.entity';
 import { S3Service } from '../s3/s3.service';
 import { OpenAiService } from '../openai/openai.service';
-import { extname } from 'path';
 
 interface UploadReceiptParams {
   userId: string;
@@ -27,12 +27,15 @@ export class ReceiptsService {
   ) {}
 
   async uploadReceipt({ userId, file }: UploadReceiptParams): Promise<Receipt> {
-    const ext = extname(file.originalname).toLowerCase();
-    const s3Key = `receipts/${userId}/${uuidv4()}${ext}`;
+    // S3コスト・転送コスト削減のためWebP変換・リサイズ
+    const { buffer: convertedBuffer, mimeType: convertedMimeType } =
+      await this.convertToWebP(file.buffer);
+
+    const s3Key = `receipts/${userId}/${uuidv4()}.webp`;
 
     await this.s3Service.upload({
-      buffer: file.buffer,
-      mimeType: file.mimetype,
+      buffer: convertedBuffer,
+      mimeType: convertedMimeType,
       s3Key,
     });
 
@@ -46,7 +49,8 @@ export class ReceiptsService {
     const saved = await this.receiptsRepository.save(receipt);
 
     // アップロード完了後、非同期でVision解析を実行（fire-and-forget）
-    this.analyzeReceipt(saved.id, file.buffer, file.mimetype).catch(
+    // 変換後バッファを渡すことでVision APIのトークンコストも削減
+    this.analyzeReceipt(saved.id, convertedBuffer, convertedMimeType).catch(
       (error: unknown) => {
         this.logger.error(
           `レシート解析に失敗しました receiptId=${saved.id}`,
@@ -56,6 +60,19 @@ export class ReceiptsService {
     );
 
     return saved;
+  }
+
+  private async convertToWebP(
+    buffer: Buffer,
+  ): Promise<{ buffer: Buffer; mimeType: 'image/webp' }> {
+    const converted = await sharp(buffer)
+      .resize(1600, 1600, {
+        fit: 'inside',            // 縦横比を保持・見切れなし
+        withoutEnlargement: true, // 元画像より大きくしない
+      })
+      .webp({ quality: 85 })
+      .toBuffer();
+    return { buffer: converted, mimeType: 'image/webp' };
   }
 
   async analyzeReceipt(
