@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  basePath: '/credit-checker',
   output: 'standalone',
   experimental: {
     // CloudFront → ALB 経由だと Host ヘッダーが ALB の DNS 名に書き換わり

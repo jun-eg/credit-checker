@@ -85,7 +85,7 @@ export class EdgeStack extends cdk.Stack {
       protocol: elbv2.ApplicationProtocol.HTTP,
       targets: [frontendService],
       healthCheck: {
-        path: '/',
+        path: '/credit-checker',
         interval: cdk.Duration.seconds(30),
       },
     });
