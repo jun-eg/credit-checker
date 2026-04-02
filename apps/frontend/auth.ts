@@ -14,6 +14,7 @@ declare module '@auth/core/jwt' {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  basePath: '/api/auth',
   providers: [Google],
   callbacks: {
     async jwt({ token, account, profile }) {
