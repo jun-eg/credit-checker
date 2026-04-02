@@ -8,8 +8,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import OpenAI from 'openai';
-import { ChatSession } from '../entities/chat-session.entity';
-import { ChatMessage, MessageRole } from '../entities/chat-message.entity';
+import { ChatSession } from '../../entities/chat-session.entity';
+import { ChatMessage, MessageRole } from '../../entities/chat-message.entity';
 import { OpenAiService } from '../openai/openai.service';
 import { ChatToolExecutorService } from './chat-tool-executor.service';
 import { SPENDING_TOOLS } from './tool-definitions';

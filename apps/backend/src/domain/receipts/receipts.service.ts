@@ -3,10 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
-import { Receipt, ReceiptStatus } from '../entities/receipt.entity';
-import { ReceiptItem } from '../entities/receipt-item.entity';
-import { RoomMember } from '../entities/room-member.entity';
-import { S3Service } from '../s3/s3.service';
+import { Receipt, ReceiptStatus } from '../../entities/receipt.entity';
+import { ReceiptItem } from '../../entities/receipt-item.entity';
+import { RoomMember } from '../../entities/room-member.entity';
+import { S3Service } from '../../core/s3/s3.service';
 import { OpenAiService } from '../openai/openai.service';
 
 interface UploadReceiptParams {

@@ -7,16 +7,16 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { User } from '../entities/user.entity';
+import { JwtAuthGuard } from '../../core/auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../core/common/decorators/current-user.decorator';
+import { User } from '../../entities/user.entity';
 import { ChatService } from './chat.service';
 import { CreateSessionResponseDto } from './dto/create-session.response.dto';
 import { ListMessagesResponseDto } from './dto/list-messages.response.dto';
 import { ListSessionsResponseDto } from './dto/list-sessions.response.dto';
 import { SendMessageRequestDto } from './dto/send-message.request.dto';
 import { SendMessageResponseDto } from './dto/send-message.response.dto';
-import { MessageRole } from '../entities/chat-message.entity';
+import { MessageRole } from '../../entities/chat-message.entity';
 
 @Controller('chat')
 @UseGuards(JwtAuthGuard)

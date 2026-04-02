@@ -1,4 +1,4 @@
-import { ReceiptStatus } from '../../entities/receipt.entity';
+import { ReceiptStatus } from '../../../entities/receipt.entity';
 
 interface ReceiptItemDto {
   id: string;

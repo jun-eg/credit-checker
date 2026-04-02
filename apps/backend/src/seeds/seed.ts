@@ -1,4 +1,4 @@
-import { AppDataSource } from '../database/data-source';
+import { AppDataSource } from '../core/database/data-source';
 import { User } from '../entities/user.entity';
 import { Receipt, ReceiptStatus } from '../entities/receipt.entity';
 import { ReceiptItem } from '../entities/receipt-item.entity';

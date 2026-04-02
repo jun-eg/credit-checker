@@ -3,8 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthModule } from './auth/auth.module';
-import { ReceiptsModule } from './receipts/receipts.module';
+import { AuthModule } from './core/auth/auth.module';
+import { ReceiptsModule } from './domain/receipts/receipts.module';
 import { ChatMessage } from './entities/chat-message.entity';
 import { ChatSession } from './entities/chat-session.entity';
 import { Receipt } from './entities/receipt.entity';
@@ -12,10 +12,10 @@ import { ReceiptItem } from './entities/receipt-item.entity';
 import { Room } from './entities/room.entity';
 import { RoomMember } from './entities/room-member.entity';
 import { User } from './entities/user.entity';
-import { UsersModule } from './users/users.module';
-import { ChatModule } from './chat/chat.module';
-import { RoomsModule } from './rooms/rooms.module';
-import { secrets } from './config/secrets';
+import { UsersModule } from './core/users/users.module';
+import { ChatModule } from './domain/chat/chat.module';
+import { RoomsModule } from './domain/rooms/rooms.module';
+import { secrets } from './core/config/secrets';
 
 @Module({
   imports: [

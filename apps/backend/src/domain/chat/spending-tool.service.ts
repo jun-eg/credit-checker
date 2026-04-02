@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Receipt, ReceiptStatus } from '../entities/receipt.entity';
-import { ReceiptItem } from '../entities/receipt-item.entity';
+import { Receipt, ReceiptStatus } from '../../entities/receipt.entity';
+import { ReceiptItem } from '../../entities/receipt-item.entity';
 
 interface SpendingTotal {
   total: number;

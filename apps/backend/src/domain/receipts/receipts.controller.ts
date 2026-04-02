@@ -22,9 +22,9 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { User } from '../entities/user.entity';
+import { JwtAuthGuard } from '../../core/auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../core/common/decorators/current-user.decorator';
+import { User } from '../../entities/user.entity';
 import { GetReceiptResponseDto } from './dto/get-receipt.response.dto';
 import { ListReceiptsResponseDto } from './dto/list-receipts.response.dto';
 import { MonthlySummaryResponseDto } from './dto/monthly-summary.response.dto';

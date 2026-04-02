@@ -6,9 +6,9 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Room } from '../entities/room.entity';
-import { RoomMember, RoomMemberRole } from '../entities/room-member.entity';
-import { Receipt } from '../entities/receipt.entity';
+import { Room } from '../../entities/room.entity';
+import { RoomMember, RoomMemberRole } from '../../entities/room-member.entity';
+import { Receipt } from '../../entities/receipt.entity';
 @Injectable()
 export class RoomsService {
   constructor(

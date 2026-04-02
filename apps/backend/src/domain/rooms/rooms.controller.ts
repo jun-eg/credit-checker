@@ -9,10 +9,10 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { User } from '../entities/user.entity';
-import { RoomMemberRole } from '../entities/room-member.entity';
+import { JwtAuthGuard } from '../../core/auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../core/common/decorators/current-user.decorator';
+import { User } from '../../entities/user.entity';
+import { RoomMemberRole } from '../../entities/room-member.entity';
 import { CreateRoomRequestDto } from './dto/create-room.request.dto';
 import { JoinRoomRequestDto } from './dto/join-room.request.dto';
 import { RoomDetailResponseDto, RoomResponseDto } from './dto/room.response.dto';

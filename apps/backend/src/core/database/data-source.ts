@@ -1,11 +1,11 @@
 import { DataSource } from 'typeorm';
-import { User } from '../entities/user.entity';
-import { Receipt } from '../entities/receipt.entity';
-import { ReceiptItem } from '../entities/receipt-item.entity';
-import { ChatSession } from '../entities/chat-session.entity';
-import { ChatMessage } from '../entities/chat-message.entity';
-import { Room } from '../entities/room.entity';
-import { RoomMember } from '../entities/room-member.entity';
+import { User } from '../../entities/user.entity';
+import { Receipt } from '../../entities/receipt.entity';
+import { ReceiptItem } from '../../entities/receipt-item.entity';
+import { ChatSession } from '../../entities/chat-session.entity';
+import { ChatMessage } from '../../entities/chat-message.entity';
+import { Room } from '../../entities/room.entity';
+import { RoomMember } from '../../entities/room-member.entity';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
