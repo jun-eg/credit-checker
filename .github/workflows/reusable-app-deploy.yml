@@ -174,10 +174,32 @@ jobs:
             --task-definition "${{ steps.register_tasks.outputs.BACKEND_ARN }}"
 
       - name: Wait for stable
+        timeout-minutes: 20
         run: |
-          aws ecs wait services-stable \
-            --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
-            --services ${{ vars.APP_NAME }}-frontend-${{ inputs.environment }} ${{ vars.APP_NAME }}-backend-${{ inputs.environment }}
+          APP="${{ vars.APP_NAME }}"
+          ENV="${{ inputs.environment }}"
+          CLUSTER="${APP}-${ENV}"
+          SERVICES="${APP}-frontend-${ENV} ${APP}-backend-${ENV}"
+
+          # aws ecs wait は最大10分(40回×15秒)のため、ポーリングループで延長
+          DEADLINE=$((SECONDS + 1200))
+          until [ $SECONDS -ge $DEADLINE ]; do
+            STATUSES=$(aws ecs describe-services \
+              --cluster "$CLUSTER" \
+              --services $SERVICES \
+              --query 'services[*].deployments[?status==`PRIMARY`].rolloutState' \
+              --output text)
+
+            if echo "$STATUSES" | grep -qv "COMPLETED"; then
+              echo "Waiting... statuses: $STATUSES"
+              sleep 15
+            else
+              echo "All services stable."
+              exit 0
+            fi
+          done
+          echo "Timed out waiting for services to stabilize."
+          exit 1
 
       - name: Rollback on failure
         if: failure() && steps.ecs_update.outcome == 'success'
