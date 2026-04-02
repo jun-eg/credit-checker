@@ -137,7 +137,7 @@ export class AppStack extends cdk.Stack {
         AUTH_GOOGLE_ID: config.authGoogleId,
         BACKEND_URL: `https://${config.domain}/api/v1`,
         NEXT_PUBLIC_BACKEND_URL: `https://${config.domain}/api/v1`,
-        AUTH_URL: `https://${config.domain}/credit-checker`,
+        AUTH_URL: `https://${config.domain}/credit-checker/api/auth`,
       },
       secrets: {
         AUTH_SECRET: ecs.Secret.fromSecretsManager(authSecret),
