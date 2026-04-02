@@ -6,12 +6,12 @@ export default async function Home() {
   const session = await auth();
 
   if (session) {
-    redirect('/rooms');
+    redirect('/select');
   }
 
   const handleSignIn = async () => {
     'use server';
-    await signIn('google', { redirectTo: '/credit-checker/rooms' });
+    await signIn('google', { redirectTo: '/credit-checker/select' });
   };
 
   return (

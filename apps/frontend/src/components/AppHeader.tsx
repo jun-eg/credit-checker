@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { signOut } from '../../auth';
+import { ExitButton } from './ExitButton';
 
 interface AppHeaderProps {
   currentPath?: string;
@@ -49,31 +50,24 @@ export function AppHeader({ currentPath }: AppHeaderProps) {
               >
                 チャット
               </Link>
-              <Link
-                href="/rooms"
-                className={`text-sm transition-colors ${
-                  currentPath?.startsWith('/rooms')
-                    ? 'text-zinc-900 dark:text-zinc-50'
-                    : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50'
-                }`}
-              >
-                ルーム
-              </Link>
             </nav>
           </div>
-          <form
-            action={async () => {
-              'use server';
-              await signOut({ redirectTo: '/credit-checker/' });
-            }}
-          >
-            <button
-              type="submit"
-              className="shrink-0 pt-0.5 text-sm text-zinc-500 transition-colors hover:text-zinc-900 sm:pt-0 dark:text-zinc-400 dark:hover:text-zinc-50"
+          <div className="flex items-center gap-4">
+            <ExitButton />
+            <form
+              action={async () => {
+                'use server';
+                await signOut({ redirectTo: '/credit-checker/' });
+              }}
             >
-              ログアウト
-            </button>
-          </form>
+              <button
+                type="submit"
+                className="shrink-0 pt-0.5 text-sm text-zinc-500 transition-colors hover:text-zinc-900 sm:pt-0 dark:text-zinc-400 dark:hover:text-zinc-50"
+              >
+                ログアウト
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </header>
