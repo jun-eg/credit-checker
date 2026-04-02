@@ -8,7 +8,7 @@
 
 ## タスク ARN の確認
 
-`<app-name>` は `vars.APP_NAME` の値（例: `credit-checker`）、`<env>` は `dev` または `prod`。
+`<app-name>` は `vars.APP_NAME` の値(例: `myapp`)、`<env>` は `dev` または `prod`。
 
 ```bash
 aws ecs list-tasks \

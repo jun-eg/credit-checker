@@ -1,6 +1,6 @@
 # Secrets Manager シークレット更新手順
 
-`<app-name>` は `vars.APP_NAME` の値（例: `credit-checker`）、`<env>` は `dev` または `prod`。
+`<app-name>` は `vars.APP_NAME` の値(例: `myapp`)、`<env>` は `dev` または `prod`。
 
 ## シークレット構造
 

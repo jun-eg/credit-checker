@@ -93,5 +93,5 @@ graph TB
 
 | 環境 | AWS アカウント | ドメイン | スケーリング |
 |------|--------------|----------|-------------|
-| dev | credit-checker-dev | dev.jun-eg.site | min:0 / max:2（夜間停止） |
-| prod | credit-checker-prod | jun-eg.site | min:1 / max:3 |
+| dev | {APP_NAME}-dev | {DEV_DOMAIN} | min:0 / max:2（夜間停止） |
+| prod | {APP_NAME}-prod | {PROD_DOMAIN} | min:1 / max:3 |

@@ -2,7 +2,7 @@
 
 ## アプリ Rollback（タスク定義を前リビジョンに戻す）
 
-`<app-name>` は `vars.APP_NAME` の値（例: `credit-checker`）。
+`<app-name>` は `vars.APP_NAME` の値(例: `myapp`)。
 
 ```bash
 # 現在のリビジョンを確認

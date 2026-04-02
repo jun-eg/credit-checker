@@ -8,12 +8,8 @@
 cp .env.example .env
 ```
 
-`.env` を編集し、以下の2つを外部サービスから取得して設定する：
-
-| 変数 | 取得元 |
-|------|--------|
-| `AUTH_GOOGLE_SECRET` | Google Cloud Console → 認証情報 → OAuth 2.0 クライアント |
-| `OPENAI_API_KEY` | OpenAI Platform → API keys |
+`.env` を編集し、アプリが使う外部サービスのシークレットを設定する。
+設定が必要な変数は `.env.example` のコメントを参照。
 
 `JWT_SECRET` / `AUTH_SECRET` はローカルでは固定のダミー値で動作するため変更不要。
 
@@ -53,11 +49,11 @@ CDK がデプロイに使う S3 バケット・IAM ロールを作成する。
 cd infra
 npm ci
 
-# dev
-npx cdk bootstrap aws://502140064658/ap-northeast-1
+# dev（DEV_AWS_ACCOUNT_ID と AWS_REGION は .env.infra から取得）
+npx cdk bootstrap aws://${DEV_AWS_ACCOUNT_ID}/${AWS_REGION}
 
 # prod（.env.infra の認証情報を prod 用に差し替えてから実行）
-npx cdk bootstrap aws://882856016971/ap-northeast-1
+npx cdk bootstrap aws://${PROD_AWS_ACCOUNT_ID}/${AWS_REGION}
 ```
 
 ### 2. Bootstrap stack deploy（各アカウントで1回のみ）
@@ -80,16 +76,16 @@ GitHub → リポジトリ → **Settings → Secrets and variables → Actions*
 
 | 名前 | 値 |
 |------|-----|
-| `DEV_AWS_ACCOUNT_ID` | `502140064658` |
-| `PROD_AWS_ACCOUNT_ID` | `882856016971` |
+| `DEV_AWS_ACCOUNT_ID` | dev AWS アカウント ID |
+| `PROD_AWS_ACCOUNT_ID` | prod AWS アカウント ID |
 
 **Variables：**
 
 | 名前 | 値 |
 |------|-----|
-| `APP_NAME` | `credit-checker` |
-| `AWS_REGION` | `ap-northeast-1` |
-| `AUTH_GOOGLE_ID` | Google Cloud Console から取得 |
+| `APP_NAME` | アプリ名（例: `myapp`）。S3・ECS リソース名のベースになる |
+| `AWS_REGION` | デプロイリージョン（例: `ap-northeast-1`） |
+| `AUTH_GOOGLE_ID` | 使用する OAuth プロバイダーのクライアント ID |
 
 ### 4. 初回デプロイ
 
@@ -101,20 +97,21 @@ GitHub Actions → **Deploy** → **Run workflow** から dev 環境に向けて
 `REPLACE_ME` のままでは起動後にアプリが正常動作しない。
 
 ```bash
+# APP_NAME は .env.infra の値を使用（例: myapp）
 aws secretsmanager update-secret \
-  --secret-id "/credit-checker/dev/app-secrets" \
+  --secret-id "/${APP_NAME}/dev/app-secrets" \
   --secret-string '{
-    "auth_google_secret": "<Google Cloud Console から取得>",
-    "openai_api_key":     "<OpenAI から取得>"
+    "auth_google_secret": "<OAuth プロバイダーのシークレット>",
+    "openai_api_key":     "<OpenAI API キー（使用する場合）>"
   }' \
-  --region ap-northeast-1 --profile dev
+  --region ${AWS_REGION} --profile dev
 ```
 
 設定内容を確認する：
 
 ```bash
 aws secretsmanager get-secret-value \
-  --secret-id "/credit-checker/dev/app-secrets" \
+  --secret-id "/${APP_NAME}/dev/app-secrets" \
   --query SecretString --output text --profile dev | jq .
 ```
 

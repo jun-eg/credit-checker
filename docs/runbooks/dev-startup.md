@@ -46,7 +46,7 @@ aws ecs wait services-stable \
   --services <app-name>-frontend-dev <app-name>-backend-dev \
   --region ap-northeast-1
 
-echo "Dev environment is ready: https://dev.jun-eg.site"
+echo "Dev environment is ready: https://dev.${DEV_DOMAIN}"
 ```
 
 ## 確認
