@@ -7,8 +7,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Room } from '../entities/room.entity';
 import { RoomMember, RoomMemberRole } from '../entities/room-member.entity';
-import { User } from '../entities/user.entity';
-
 @Injectable()
 export class RoomsService {
   constructor(
@@ -16,8 +14,6 @@ export class RoomsService {
     private readonly roomsRepository: Repository<Room>,
     @InjectRepository(RoomMember)
     private readonly roomMembersRepository: Repository<RoomMember>,
-    @InjectRepository(User)
-    private readonly usersRepository: Repository<User>,
   ) {}
 
   async createRoom(userId: string, name: string): Promise<Room> {
