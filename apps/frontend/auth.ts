@@ -1,5 +1,5 @@
 import NextAuth from 'next-auth';
-import Google from 'next-auth/providers/google';
+import { googleProvider } from './src/lib/auth/providers/google';
 
 declare module 'next-auth' {
   interface Session {
@@ -14,7 +14,7 @@ declare module '@auth/core/jwt' {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [Google],
+  providers: [googleProvider],
   callbacks: {
     async jwt({ token, account, profile }) {
       // 初回サインイン時のみバックエンドにupsertしてトークンを取得
