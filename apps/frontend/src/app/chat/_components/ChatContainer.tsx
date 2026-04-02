@@ -28,11 +28,21 @@ export function ChatContainer({ backendToken, sessionId }: ChatContainerProps) {
         currentSessionId={sessionId}
         onSessionsRefresh={handleSessionsRefresh}
       />
-      <MessageThread
-        backendToken={backendToken}
-        sessionId={sessionId}
-        onMessageSent={handleMessageSent}
-      />
+      {sessionId ? (
+        // key でセッション切り替え時に再マウントし状態をリセットする
+        <MessageThread
+          key={sessionId}
+          backendToken={backendToken}
+          sessionId={sessionId}
+          onMessageSent={handleMessageSent}
+        />
+      ) : (
+        <div className="flex flex-1 items-center justify-center">
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">
+            左のサイドバーからチャットを選択するか、新規チャットを開始してください
+          </p>
+        </div>
+      )}
     </>
   );
 }

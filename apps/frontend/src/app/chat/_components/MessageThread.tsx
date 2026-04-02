@@ -5,7 +5,6 @@ import { getChatMessages, sendChatMessage } from '../../../lib/api/chat';
 import { ChatMessageItem, ChatSession } from '../../../types/chat';
 
 type ThreadState =
-  | { status: 'empty' }
   | { status: 'loading' }
   | { status: 'ready'; session: ChatSession; messages: ChatMessageItem[] }
   | { status: 'sending'; session: ChatSession; messages: ChatMessageItem[] }
@@ -13,7 +12,7 @@ type ThreadState =
 
 interface MessageThreadProps {
   backendToken: string;
-  sessionId: string | null;
+  sessionId: string;
   onMessageSent?: () => void;
 }
 
@@ -22,7 +21,7 @@ export function MessageThread({
   sessionId,
   onMessageSent,
 }: MessageThreadProps) {
-  const [state, setState] = useState<ThreadState>({ status: 'empty' });
+  const [state, setState] = useState<ThreadState>({ status: 'loading' });
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -31,23 +30,25 @@ export function MessageThread({
   }, [state]);
 
   useEffect(() => {
-    if (!sessionId) {
-      setState({ status: 'empty' });
-      return;
-    }
-
-    setState({ status: 'loading' });
+    let active = true;
     getChatMessages(sessionId, backendToken)
       .then((messages) => {
-        setState({
-          status: 'ready',
-          session: { id: sessionId, title: null, createdAt: new Date().toISOString() },
-          messages,
-        });
+        if (active) {
+          setState({
+            status: 'ready',
+            session: { id: sessionId, title: null, createdAt: new Date().toISOString() },
+            messages,
+          });
+        }
       })
       .catch(() => {
-        setState({ status: 'error', message: 'メッセージの取得に失敗しました' });
+        if (active) {
+          setState({ status: 'error', message: 'メッセージの取得に失敗しました' });
+        }
       });
+    return () => {
+      active = false;
+    };
   }, [sessionId, backendToken]);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -106,16 +107,6 @@ export function MessageThread({
   const messages =
     state.status === 'ready' || state.status === 'sending' ? state.messages : [];
 
-  if (state.status === 'empty') {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">
-          左のサイドバーからチャットを選択するか、新規チャットを開始してください
-        </p>
-      </div>
-    );
-  }
-
   if (state.status === 'loading') {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -129,7 +120,7 @@ export function MessageThread({
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         <p className="text-sm text-red-600 dark:text-red-400">{state.message}</p>
         <button
-          onClick={() => setState({ status: 'empty' })}
+          onClick={() => setState({ status: 'loading' })}
           className="text-sm text-zinc-500 underline hover:text-zinc-700 dark:hover:text-zinc-300"
         >
           やり直す

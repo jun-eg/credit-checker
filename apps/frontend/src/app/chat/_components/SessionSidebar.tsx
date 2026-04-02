@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createChatSession, getChatSessions } from '../../../lib/api/chat';
 import { ChatSession } from '../../../types/chat';
@@ -25,7 +25,7 @@ export function SessionSidebar({
   const [sidebarState, setSidebarState] = useState<SidebarState>({ status: 'loading' });
   const [creating, setCreating] = useState(false);
 
-  const loadSessions = async () => {
+  const loadSessions = useCallback(async () => {
     setSidebarState({ status: 'loading' });
     try {
       const sessions = await getChatSessions(backendToken);
@@ -33,16 +33,16 @@ export function SessionSidebar({
     } catch {
       setSidebarState({ status: 'error' });
     }
-  };
+  }, [backendToken]);
 
   useEffect(() => {
     loadSessions();
-  }, []);
+  }, [loadSessions]);
 
   // 親から再取得トリガーを受け取れるようにする
   useEffect(() => {
     onSessionsRefresh?.(loadSessions);
-  }, [onSessionsRefresh]);
+  }, [onSessionsRefresh, loadSessions]);
 
   const handleNewChat = async () => {
     setCreating(true);
