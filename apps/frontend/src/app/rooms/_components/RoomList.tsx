@@ -14,7 +14,7 @@ interface RoomListProps {
 type ModalState = 'none' | 'create' | 'join';
 
 export function RoomList({ rooms: initial, backendToken }: RoomListProps) {
-  const [rooms, setRooms] = useState(initial);
+  const [rooms, setRooms] = useState<Room[]>(initial);
   const [modalState, setModalState] = useState<ModalState>('none');
 
   const handleCreated = (room: Room) => {
