@@ -40,8 +40,11 @@ if (!appName) throw new Error('appName が未設定です。.env.infra に APP_N
 // GitHub Actions OIDC プロバイダーと deploy ロールを管理するスタック
 // 初回のみローカルの AWS 認証情報で手動実行が必要:
 //   npx cdk deploy Bootstrap -c env=dev -c appName=<name>
+const githubRepo = process.env.GITHUB_REPO;
+if (!githubRepo) throw new Error('GITHUB_REPO が未設定です。.env.infra に GITHUB_REPO=<org>/<repo> を定義してください');
+
 new BootstrapStack(app, 'Bootstrap', {
-  githubRepo: 'jun-eg/credit-checker',
+  githubRepo,
   env: config.env,
 });
 

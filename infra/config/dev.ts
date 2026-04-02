@@ -6,7 +6,7 @@ export const devConfig: EnvironmentConfig = {
     account: process.env.DEV_AWS_ACCOUNT_ID!,
     region: process.env.AWS_REGION!,
   },
-  domain: 'dev.jun-eg.site',
+  domain: process.env.DEV_DOMAIN!,
   scaling: {
     frontend: { minCapacity: 0, maxCapacity: 2 },
     backend: { minCapacity: 0, maxCapacity: 2 },
@@ -14,7 +14,7 @@ export const devConfig: EnvironmentConfig = {
   rds: {
     instanceType: 't4g.micro',
     multiAz: false,
-    databaseName: 'credit_checker',
+    databaseName: (process.env.APP_NAME ?? 'app').replace(/-/g, '_'),
   },
   vpc: {
     maxAzs: 2,
