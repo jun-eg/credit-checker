@@ -16,6 +16,7 @@ import { RoomMemberRole } from '../entities/room-member.entity';
 import { CreateRoomRequestDto } from './dto/create-room.request.dto';
 import { JoinRoomRequestDto } from './dto/join-room.request.dto';
 import { RoomDetailResponseDto, RoomResponseDto } from './dto/room.response.dto';
+import { ListRoomReceiptsResponseDto } from './dto/room-receipt.response.dto';
 import { RoomsService } from './rooms.service';
 
 @Controller('rooms')
@@ -73,6 +74,28 @@ export class RoomsController {
   ): Promise<{ inviteCode: string }> {
     const room = await this.roomsService.regenerateInviteCode(id, user.id);
     return { inviteCode: room.inviteCode };
+  }
+
+  @Get(':id/receipts')
+  async listRoomReceipts(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ListRoomReceiptsResponseDto> {
+    const receipts = await this.roomsService.listRoomReceipts(id, user.id);
+    return {
+      items: receipts.map((r) => ({
+        id: r.id,
+        userId: r.userId,
+        uploaderDisplayName: r.user?.displayName ?? null,
+        status: r.status,
+        originalFileName: r.originalFileName,
+        storeName: r.storeName,
+        purchasedAt: r.purchasedAt,
+        total: r.total !== null ? Number(r.total) : null,
+        currency: r.currency,
+        createdAt: r.createdAt,
+      })),
+    };
   }
 
   @Get(':id')

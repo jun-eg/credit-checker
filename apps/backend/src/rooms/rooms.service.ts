@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Room } from '../entities/room.entity';
 import { RoomMember, RoomMemberRole } from '../entities/room-member.entity';
+import { Receipt } from '../entities/receipt.entity';
 @Injectable()
 export class RoomsService {
   constructor(
@@ -15,6 +16,8 @@ export class RoomsService {
     private readonly roomsRepository: Repository<Room>,
     @InjectRepository(RoomMember)
     private readonly roomMembersRepository: Repository<RoomMember>,
+    @InjectRepository(Receipt)
+    private readonly receiptsRepository: Repository<Receipt>,
   ) {}
 
   async createRoom(userId: string, name: string): Promise<Room> {
@@ -136,6 +139,24 @@ export class RoomsService {
 
     room.inviteCode = this.generateInviteCode();
     return this.roomsRepository.save(room);
+  }
+
+  async listRoomReceipts(roomId: string, userId: string): Promise<Receipt[]> {
+    // メンバー確認
+    const member = await this.roomMembersRepository.findOne({
+      where: { roomId, userId },
+    });
+    if (!member) {
+      throw new NotFoundException(`ルームが見つかりません: ${roomId}`);
+    }
+
+    // ルームに紐づく全メンバーのレシートをuserと一緒に取得
+    return this.receiptsRepository
+      .createQueryBuilder('receipt')
+      .innerJoinAndSelect('receipt.user', 'user')
+      .where('receipt.room_id = :roomId', { roomId })
+      .orderBy('receipt.created_at', 'DESC')
+      .getMany();
   }
 
   private generateInviteCode(): string {
