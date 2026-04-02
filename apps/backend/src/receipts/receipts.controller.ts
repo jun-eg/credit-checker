@@ -157,6 +157,15 @@ export class ReceiptsController {
     await this.receiptsService.deleteReceipt(id, user.id);
   }
 
+  @Get(':id/image-url')
+  async getReceiptImagePresignedUrl(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ url: string }> {
+    const url = await this.receiptsService.getReceiptImagePresignedUrl(id, user.id);
+    return { url };
+  }
+
   @Get(':id/image')
   @Header('Cache-Control', 'private, max-age=3600')
   async getReceiptImage(

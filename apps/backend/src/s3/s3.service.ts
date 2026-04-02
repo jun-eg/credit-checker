@@ -5,6 +5,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 interface S3UploadParams {
   buffer: Buffer;
@@ -48,6 +49,19 @@ export class S3Service {
         `S3へのアップロードに失敗しました: ${String(error)}`,
       );
     }
+  }
+
+  async getPresignedUrl(s3Key: string, expiresIn = 3600): Promise<string> {
+    const command = new GetObjectCommand({ Bucket: this.bucket, Key: s3Key });
+    const url = await getSignedUrl(this.client, command, { expiresIn });
+
+    // Docker環境ではPresigned URLが内部ホスト名になるため、ブラウザアクセス可能なURLに書き換える
+    const internalEndpoint = this.configService.get<string>('S3_ENDPOINT');
+    const publicEndpoint = this.configService.get<string>('S3_PUBLIC_ENDPOINT');
+    if (internalEndpoint && publicEndpoint) {
+      return url.replace(internalEndpoint, publicEndpoint);
+    }
+    return url;
   }
 
   async getObject(s3Key: string): Promise<Buffer> {

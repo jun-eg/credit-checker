@@ -278,6 +278,14 @@ export class ReceiptsService {
     return { buffer, mimeType };
   }
 
+  async getReceiptImagePresignedUrl(receiptId: string, userId: string): Promise<string> {
+    const receipt = await this.receiptsRepository.findOneBy({ id: receiptId, userId });
+    if (!receipt) {
+      throw new NotFoundException(`レシートが見つかりません: ${receiptId}`);
+    }
+    return this.s3Service.getPresignedUrl(receipt.s3Key);
+  }
+
   async listReceipts(userId: string): Promise<Receipt[]> {
     return this.receiptsRepository.find({
       where: { userId },

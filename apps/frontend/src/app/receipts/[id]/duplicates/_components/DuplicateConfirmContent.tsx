@@ -10,6 +10,8 @@ interface DuplicateConfirmContentProps {
   receipt: GetReceiptDetailResponse;
   duplicate: GetReceiptDetailResponse;
   token: string;
+  imageUrl?: string;
+  duplicateImageUrl?: string;
   duplicateIndex: number;
   duplicateTotal: number;
 }
@@ -18,6 +20,8 @@ export function DuplicateConfirmContent({
   receipt,
   duplicate,
   token,
+  imageUrl,
+  duplicateImageUrl,
   duplicateIndex,
   duplicateTotal,
 }: DuplicateConfirmContentProps) {
@@ -53,7 +57,7 @@ export function DuplicateConfirmContent({
               新しいレシート
             </span>
           </div>
-          <ReceiptDetailContent receipt={receipt} token={token} />
+          <ReceiptDetailContent receipt={receipt} imageUrl={imageUrl} />
         </div>
 
         {/* 既存レシート（右） */}
@@ -68,7 +72,7 @@ export function DuplicateConfirmContent({
               </span>
             )}
           </div>
-          <ReceiptDetailContent receipt={duplicate} token={token} />
+          <ReceiptDetailContent receipt={duplicate} imageUrl={duplicateImageUrl} />
         </div>
       </div>
 
