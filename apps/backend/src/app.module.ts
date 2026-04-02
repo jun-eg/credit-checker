@@ -9,9 +9,12 @@ import { ChatMessage } from './entities/chat-message.entity';
 import { ChatSession } from './entities/chat-session.entity';
 import { Receipt } from './entities/receipt.entity';
 import { ReceiptItem } from './entities/receipt-item.entity';
+import { Room } from './entities/room.entity';
+import { RoomMember } from './entities/room-member.entity';
 import { User } from './entities/user.entity';
 import { UsersModule } from './users/users.module';
 import { ChatModule } from './chat/chat.module';
+import { RoomsModule } from './rooms/rooms.module';
 import { secrets } from './config/secrets';
 
 @Module({
@@ -31,7 +34,7 @@ import { secrets } from './config/secrets';
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         url: secrets.databaseUrl(),
-        entities: [User, Receipt, ReceiptItem, ChatSession, ChatMessage],
+        entities: [User, Receipt, ReceiptItem, ChatSession, ChatMessage, Room, RoomMember],
         migrations: ['dist/migrations/*.js'],
         synchronize: false,
         logging: process.env.TYPEORM_LOGGING === 'true',
@@ -44,6 +47,7 @@ import { secrets } from './config/secrets';
     UsersModule,
     ReceiptsModule,
     ChatModule,
+    RoomsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

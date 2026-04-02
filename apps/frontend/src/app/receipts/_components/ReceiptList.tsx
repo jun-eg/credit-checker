@@ -7,9 +7,13 @@ import { type UpdateReceiptItemRequest, ListReceiptItem, GetReceiptDetailRespons
 import { getReceiptDetail, updateReceipt, deleteReceipt } from '../../../lib/api/receipts';
 import { ReceiptDetailContent } from '../../../components/ReceiptDetailContent';
 
+// RoomReceiptItemにはpossibleDuplicateIdsがないため、ReceiptListでも共通して扱えるようオプショナルに拡張
+type ReceiptListItem = ListReceiptItem & { uploaderDisplayName?: string | null };
+
 interface ReceiptListProps {
-  receipts: ListReceiptItem[];
+  receipts: ReceiptListItem[];
   backendToken: string;
+  showUploader?: boolean;
 }
 
 const STATUS_LABELS: Record<ListReceiptItem['status'], string> = {
@@ -136,13 +140,14 @@ function EditModal({ receiptId, backendToken, onClose, onSaved }: EditModalProps
 // ---- レシート行 ----
 
 interface ReceiptRowProps {
-  receipt: ListReceiptItem;
+  receipt: ReceiptListItem;
   isLast: boolean;
+  showUploader?: boolean;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }
 
-function ReceiptRow({ receipt, isLast, onEdit, onDelete }: ReceiptRowProps) {
+function ReceiptRow({ receipt, isLast, showUploader, onEdit, onDelete }: ReceiptRowProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, startTransition] = useTransition();
 
@@ -179,6 +184,11 @@ function ReceiptRow({ receipt, isLast, onEdit, onDelete }: ReceiptRowProps) {
                   : STATUS_LABELS[receipt.status]}
               </span>
             </div>
+            {showUploader && receipt.uploaderDisplayName && (
+              <p className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-600">
+                {receipt.uploaderDisplayName}
+              </p>
+            )}
           </div>
           <span className="ml-2 shrink-0 self-center text-zinc-300 dark:text-zinc-600">›</span>
         </Link>
@@ -226,7 +236,7 @@ function ReceiptRow({ receipt, isLast, onEdit, onDelete }: ReceiptRowProps) {
 
 // ---- メインコンポーネント ----
 
-export function ReceiptList({ receipts: initial, backendToken }: ReceiptListProps) {
+export function ReceiptList({ receipts: initial, backendToken, showUploader }: ReceiptListProps) {
   const router = useRouter();
   const [receipts, setReceipts] = useState(initial);
   const [editTargetId, setEditTargetId] = useState<string | null>(null);
@@ -262,6 +272,7 @@ export function ReceiptList({ receipts: initial, backendToken }: ReceiptListProp
             key={receipt.id}
             receipt={receipt}
             isLast={idx === receipts.length - 1}
+            showUploader={showUploader}
             onEdit={setEditTargetId}
             onDelete={handleDelete}
           />

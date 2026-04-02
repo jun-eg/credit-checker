@@ -55,10 +55,12 @@ export class ReceiptsController {
       }),
     )
     file: Express.Multer.File,
+    @Body('roomId') roomId?: string,
   ): Promise<UploadReceiptResponseDto> {
     const receipt = await this.receiptsService.uploadReceipt({
       userId: user.id,
       file,
+      roomId,
     });
 
     return {
@@ -73,8 +75,9 @@ export class ReceiptsController {
   @Get()
   async listReceipts(
     @CurrentUser() user: User,
+    @Query('roomId') roomId?: string,
   ): Promise<ListReceiptsResponseDto> {
-    const receipts = await this.receiptsService.listReceipts(user.id);
+    const receipts = await this.receiptsService.listReceipts(user.id, roomId);
 
     return {
       items: receipts.map((r) => ({
@@ -95,8 +98,9 @@ export class ReceiptsController {
   async getYearlySummary(
     @CurrentUser() user: User,
     @Query('year', new DefaultValuePipe(new Date().getFullYear()), ParseIntPipe) year: number,
+    @Query('roomId') roomId?: string,
   ): Promise<YearlySummaryResponseDto> {
-    const summary = await this.receiptsService.getYearlySummary(user.id, year);
+    const summary = await this.receiptsService.getYearlySummary(user.id, year, roomId);
 
     return {
       year,
@@ -113,8 +117,9 @@ export class ReceiptsController {
     @CurrentUser() user: User,
     @Query('year', new DefaultValuePipe(new Date().getFullYear()), ParseIntPipe) year: number,
     @Query('month', new DefaultValuePipe(new Date().getMonth() + 1), ParseIntPipe) month: number,
+    @Query('roomId') roomId?: string,
   ): Promise<MonthlySummaryResponseDto> {
-    const summary = await this.receiptsService.getMonthlySummary(user.id, year, month);
+    const summary = await this.receiptsService.getMonthlySummary(user.id, year, month, roomId);
 
     return {
       year,

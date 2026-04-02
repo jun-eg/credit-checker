@@ -3,6 +3,7 @@
 import { DragEvent, ChangeEvent, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { getReceipt, uploadReceipt } from '../../../lib/api/receipts';
+import { Room } from '../../../types/room';
 
 const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 120_000;
@@ -26,14 +27,18 @@ type UploadState =
 
 interface ReceiptUploadCardProps {
   backendToken: string;
+  rooms?: Room[];
 }
 
 const TERMINAL_STATUSES: FileItemStatus[] = ['success', 'duplicate-warning', 'analysis-failed'];
 
-export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
+export function ReceiptUploadCard({ backendToken, rooms }: ReceiptUploadCardProps) {
   const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const hasRooms = rooms !== undefined && rooms.length > 0;
 
   const updateFile = (key: string, patch: Partial<Omit<FileItem, 'key'>>) => {
     setUploadState((prev) => {
@@ -48,9 +53,9 @@ export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
     });
   };
 
-  const processFile = async (file: File, key: string): Promise<void> => {
+  const processFile = async (file: File, key: string, roomId: string | undefined): Promise<void> => {
     try {
-      const result = await uploadReceipt(file, backendToken);
+      const result = await uploadReceipt(file, backendToken, roomId);
       updateFile(key, { status: 'analyzing', receiptId: result.id });
 
       const deadline = Date.now() + POLL_TIMEOUT_MS;
@@ -98,8 +103,10 @@ export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
 
     setUploadState({ status: 'processing', files: items });
 
+    // アップロード開始時点のroomIdをキャプチャして全ファイルに適用する
+    const roomIdSnapshot = selectedRoomId ?? undefined;
     files.forEach((file, i) => {
-      processFile(file, items[i].key);
+      processFile(file, items[i].key, roomIdSnapshot);
     });
   };
 
@@ -133,6 +140,30 @@ export function ReceiptUploadCard({ backendToken }: ReceiptUploadCardProps) {
       <h2 className="mb-6 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
         レシートをアップロード
       </h2>
+
+      {hasRooms && (
+        <div className="mb-4">
+          <label
+            htmlFor="room-select"
+            className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+          >
+            投稿先
+          </label>
+          <select
+            id="room-select"
+            value={selectedRoomId ?? ''}
+            onChange={(e) => setSelectedRoomId(e.target.value || null)}
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:focus:border-zinc-400"
+          >
+            <option value="">個人</option>
+            {rooms.map((room) => (
+              <option key={room.id} value={room.id}>
+                {room.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {uploadState.status === 'processing' || uploadState.status === 'done' ? (
         <div className="flex flex-col gap-3">

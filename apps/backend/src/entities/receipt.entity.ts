@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 import { ReceiptItem } from './receipt-item.entity';
+import { Room } from './room.entity';
 
 export enum ReceiptStatus {
   PENDING = 'pending',
@@ -57,6 +58,9 @@ export class Receipt {
   @Column({ name: 'possible_duplicate_ids', type: 'jsonb', nullable: true })
   possibleDuplicateIds: string[] | null;
 
+  @Column({ name: 'room_id', nullable: true })
+  roomId: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
@@ -71,4 +75,8 @@ export class Receipt {
     cascade: true,
   })
   items: ReceiptItem[];
+
+  @ManyToOne(() => Room, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'room_id' })
+  room: Room | null;
 }

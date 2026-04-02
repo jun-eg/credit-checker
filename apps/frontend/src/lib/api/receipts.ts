@@ -143,9 +143,14 @@ export async function getReceiptImagePresignedUrl(id: string, token: string): Pr
 export async function uploadReceipt(
   file: File,
   token: string,
+  roomId?: string,
 ): Promise<UploadReceiptResponse> {
   const formData = new FormData();
   formData.append('file', file);
+  // ルームへの投稿時のみroomIdを付与し、個人レシートとして区別する
+  if (roomId) {
+    formData.append('roomId', roomId);
+  }
 
   const res = await fetch(`${backendUrl}/receipts/upload`, {
     method: 'POST',
