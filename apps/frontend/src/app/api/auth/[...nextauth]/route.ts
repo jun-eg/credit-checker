@@ -1,10 +1,10 @@
 import { handlers } from '../../../../../auth';
-import { type NextRequest } from 'next/server';
+import { NextRequest } from 'next/server';
 
 // Next.js はbasePath(/credit-checker)をrequest.urlから除去するため、
 // AUTH_URL.pathnameとのマッチに失敗しAuth.jsがUnknownActionエラーを起こす。
 // リクエストURLにbasePath相当のパスを補完することで正しくアクション解析させる。
-function restoreBasePath(request: NextRequest): Request {
+function restoreBasePath(request: NextRequest): NextRequest {
   const authUrl = process.env.AUTH_URL;
   if (!authUrl) return request;
 
@@ -14,7 +14,7 @@ function restoreBasePath(request: NextRequest): Request {
   const url = new URL(request.url);
   if (!url.pathname.startsWith(basePath)) {
     url.pathname = basePath + url.pathname;
-    return new Request(url.toString(), request);
+    return new NextRequest(url.toString(), request);
   }
   return request;
 }
