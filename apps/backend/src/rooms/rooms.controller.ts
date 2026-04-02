@@ -14,6 +14,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
 import { RoomMemberRole } from '../entities/room-member.entity';
 import { CreateRoomRequestDto } from './dto/create-room.request.dto';
+import { JoinRoomRequestDto } from './dto/join-room.request.dto';
 import { RoomDetailResponseDto, RoomResponseDto } from './dto/room.response.dto';
 import { RoomsService } from './rooms.service';
 
@@ -47,6 +48,31 @@ export class RoomsController {
       memberCount: room.members?.length ?? 0,
       createdAt: room.createdAt,
     }));
+  }
+
+  // GET /rooms/:id との競合を避けるため /rooms/join を先に定義
+  @Post('join')
+  async joinRoom(
+    @CurrentUser() user: User,
+    @Body() body: JoinRoomRequestDto,
+  ): Promise<RoomResponseDto> {
+    const room = await this.roomsService.joinRoom(user.id, body.inviteCode);
+    return {
+      id: room.id,
+      name: room.name,
+      ownerId: room.ownerId,
+      memberCount: room.members?.length ?? 0,
+      createdAt: room.createdAt,
+    };
+  }
+
+  @Post(':id/invite-code/regenerate')
+  async regenerateInviteCode(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ inviteCode: string }> {
+    const room = await this.roomsService.regenerateInviteCode(id, user.id);
+    return { inviteCode: room.inviteCode };
   }
 
   @Get(':id')

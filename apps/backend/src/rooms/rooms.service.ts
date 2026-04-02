@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -94,6 +95,47 @@ export class RoomsService {
     }
 
     await this.roomMembersRepository.remove(member);
+  }
+
+  async joinRoom(userId: string, inviteCode: string): Promise<Room> {
+    const room = await this.roomsRepository.findOne({ where: { inviteCode } });
+    if (!room) {
+      throw new NotFoundException('招待コードが無効です');
+    }
+
+    const existing = await this.roomMembersRepository.findOne({
+      where: { roomId: room.id, userId },
+    });
+    if (existing) {
+      throw new ConflictException('既にこのルームのメンバーです');
+    }
+
+    const member = this.roomMembersRepository.create({
+      roomId: room.id,
+      userId,
+      role: RoomMemberRole.MEMBER,
+    });
+    await this.roomMembersRepository.save(member);
+
+    return room;
+  }
+
+  async regenerateInviteCode(roomId: string, userId: string): Promise<Room> {
+    const member = await this.roomMembersRepository.findOne({
+      where: { roomId, userId },
+    });
+    // 招待コード再生成はオーナーのみ許可
+    if (!member || member.role !== RoomMemberRole.OWNER) {
+      throw new ForbiddenException('招待コードの再生成はオーナーのみ可能です');
+    }
+
+    const room = await this.roomsRepository.findOne({ where: { id: roomId } });
+    if (!room) {
+      throw new NotFoundException(`ルームが見つかりません: ${roomId}`);
+    }
+
+    room.inviteCode = this.generateInviteCode();
+    return this.roomsRepository.save(room);
   }
 
   private generateInviteCode(): string {
