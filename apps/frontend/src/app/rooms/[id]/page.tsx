@@ -1,0 +1,117 @@
+import Link from 'next/link';
+import { notFound, redirect } from 'next/navigation';
+import { auth } from '../../../../auth';
+import { AppHeader } from '../../../components/AppHeader';
+import { getRoom } from '../../../lib/api/rooms';
+import { InviteCodeDisplay } from './_components/InviteCodeDisplay';
+import { RoomActions } from './_components/RoomActions';
+
+interface RoomDetailPageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
+  const session = await auth();
+
+  if (!session) {
+    redirect('/');
+  }
+
+  const { id } = await params;
+
+  const room = await getRoom(id, session.backendToken).catch(() => null);
+  if (!room) notFound();
+
+  // backendTokenのJWTペイロードからバックエンドユーザーIDを取得する
+  const jwtPayload = JSON.parse(
+    Buffer.from(session.backendToken.split('.')[1], 'base64url').toString(),
+  ) as { sub: string };
+  const isOwner = room.ownerId === jwtPayload.sub;
+
+  return (
+    <div className="min-h-screen bg-zinc-50 dark:bg-black">
+      <AppHeader currentPath={`/rooms/${id}`} />
+      <main className="mx-auto max-w-4xl space-y-6 px-4 py-6">
+
+        {/* 戻るリンク */}
+        <Link
+          href="/rooms"
+          className="inline-flex items-center gap-1 text-sm text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          ルーム一覧
+        </Link>
+
+        {/* ルーム情報 */}
+        <div className="rounded-2xl bg-white shadow-sm dark:bg-zinc-900">
+          <div className="border-b border-zinc-100 px-4 py-4 sm:px-8 sm:py-5 dark:border-zinc-800">
+            <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              {room.name}
+            </h1>
+          </div>
+
+          {/* メンバー一覧 */}
+          <div className="border-b border-zinc-100 px-4 py-4 sm:px-8 dark:border-zinc-800">
+            <h2 className="mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+              メンバー ({room.members.length}人)
+            </h2>
+            <ul className="space-y-2">
+              {room.members.map((member) => (
+                <li key={member.id} className="flex items-center gap-2">
+                  <span className="text-sm text-zinc-900 dark:text-zinc-50">
+                    {member.displayName ?? member.userId}
+                  </span>
+                  {member.role === 'owner' && (
+                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                      オーナー
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* 招待コード（オーナーのみ） */}
+          {isOwner && room.inviteCode && (
+            <div className="border-b border-zinc-100 px-4 py-4 sm:px-8 dark:border-zinc-800">
+              <h2 className="mb-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                招待コード
+              </h2>
+              <InviteCodeDisplay inviteCode={room.inviteCode} />
+            </div>
+          )}
+
+          {/* アクションリンク */}
+          <div className="border-b border-zinc-100 px-4 py-4 sm:px-8 dark:border-zinc-800">
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={`/receipts?roomId=${room.id}`}
+                className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              >
+                レシートを見る →
+              </Link>
+              <Link
+                href="/chat"
+                className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
+              >
+                チャット →
+              </Link>
+            </div>
+          </div>
+
+          {/* 退出・削除 */}
+          <div className="px-4 py-4 sm:px-8">
+            <RoomActions
+              roomId={room.id}
+              isOwner={isOwner}
+              backendToken={session.backendToken}
+            />
+          </div>
+        </div>
+
+      </main>
+    </div>
+  );
+}

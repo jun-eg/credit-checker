@@ -52,7 +52,7 @@ export function AppHeader({ currentPath }: AppHeaderProps) {
               <Link
                 href="/rooms"
                 className={`text-sm transition-colors ${
-                  currentPath === '/rooms'
+                  currentPath?.startsWith('/rooms')
                     ? 'text-zinc-900 dark:text-zinc-50'
                     : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50'
                 }`}
