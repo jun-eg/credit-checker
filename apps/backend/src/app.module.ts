@@ -14,6 +14,7 @@ import { RoomMember } from './entities/room-member.entity';
 import { User } from './entities/user.entity';
 import { UsersModule } from './users/users.module';
 import { ChatModule } from './chat/chat.module';
+import { RoomsModule } from './rooms/rooms.module';
 import { secrets } from './config/secrets';
 
 @Module({
@@ -46,6 +47,7 @@ import { secrets } from './config/secrets';
     UsersModule,
     ReceiptsModule,
     ChatModule,
+    RoomsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
