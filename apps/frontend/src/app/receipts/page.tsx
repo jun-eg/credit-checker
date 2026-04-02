@@ -56,7 +56,7 @@ export default async function ReceiptsPage({ searchParams }: ReceiptsPageProps) 
       <main className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
         <ReceiptTabs rooms={rooms} currentRoomId={roomId ?? null} />
 
-        <ReceiptUploadCard backendToken={session.backendToken} />
+        <ReceiptUploadCard backendToken={session.backendToken} rooms={rooms} />
 
         <div className="rounded-2xl bg-white shadow-sm dark:bg-zinc-900">
           <div className="border-b border-zinc-100 px-4 py-4 sm:px-8 sm:py-5 dark:border-zinc-800">
