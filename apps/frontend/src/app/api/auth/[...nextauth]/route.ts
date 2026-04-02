@@ -1,20 +1,28 @@
 import { handlers } from '../../../../../auth';
 import { type NextRequest } from 'next/server';
 
-// Next.js 15+ で params が Promise になったため、await して Auth.js に渡す
-// Auth.js v5 beta が古い同期形式を期待している場合でも正しくパラムを渡せるようにする
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ nextauth: string[] }> },
-) {
-  const params = await context.params;
-  return handlers.GET(request, { params });
+// Next.js はbasePath(/credit-checker)をrequest.urlから除去するため、
+// AUTH_URL.pathnameとのマッチに失敗しAuth.jsがUnknownActionエラーを起こす。
+// リクエストURLにbasePath相当のパスを補完することで正しくアクション解析させる。
+function restoreBasePath(request: NextRequest): Request {
+  const authUrl = process.env.AUTH_URL;
+  if (!authUrl) return request;
+
+  const basePath = new URL(authUrl).pathname.replace(/\/api\/auth$/, '');
+  if (!basePath) return request;
+
+  const url = new URL(request.url);
+  if (!url.pathname.startsWith(basePath)) {
+    url.pathname = basePath + url.pathname;
+    return new Request(url.toString(), request);
+  }
+  return request;
 }
 
-export async function POST(
-  request: NextRequest,
-  context: { params: Promise<{ nextauth: string[] }> },
-) {
-  const params = await context.params;
-  return handlers.POST(request, { params });
+export async function GET(request: NextRequest) {
+  return handlers.GET(restoreBasePath(request));
+}
+
+export async function POST(request: NextRequest) {
+  return handlers.POST(restoreBasePath(request));
 }
