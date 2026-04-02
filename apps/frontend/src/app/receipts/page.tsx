@@ -1,11 +1,11 @@
 import { auth } from '../../../auth';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { AppHeader } from '../../components/AppHeader';
 import { ReceiptUploadCard } from '../dashboard/_components/ReceiptUploadCard';
 import { ReceiptList } from './_components/ReceiptList';
-import { ReceiptTabs } from './_components/ReceiptTabs';
 import { listReceipts } from '../../lib/api/receipts';
-import { getRooms, listRoomReceipts } from '../../lib/api/rooms';
+import { listRoomReceipts } from '../../lib/api/rooms';
 import { ListReceiptItem } from '../../types/receipt';
 import { RoomReceiptItem } from '../../types/room';
 
@@ -25,38 +25,39 @@ function toReceiptListItem(item: RoomReceiptItem): ListReceiptItem & { uploaderD
   };
 }
 
-interface ReceiptsPageProps {
-  searchParams: Promise<{ roomId?: string }>;
+function parseRoomFromCookie(cookieValue: string): { id: string; name: string } | null {
+  if (!cookieValue.startsWith('room:')) return null;
+  const [, id, encodedName] = cookieValue.split(':');
+  if (!id || !encodedName) return null;
+  return { id, name: decodeURIComponent(encodedName) };
 }
 
-export default async function ReceiptsPage({ searchParams }: ReceiptsPageProps) {
+export default async function ReceiptsPage() {
   const session = await auth();
 
   if (!session) {
     redirect('/');
   }
 
-  const { roomId } = await searchParams;
+  const cookieStore = await cookies();
+  const modeCookieValue = cookieStore.get('app-mode')?.value ?? '';
+  const currentRoom = parseRoomFromCookie(modeCookieValue);
+  const roomId = currentRoom?.id ?? null;
 
-  const [rooms, receipts] = await Promise.all([
-    getRooms(session.backendToken).catch(() => []),
-    roomId
-      ? listRoomReceipts(roomId, session.backendToken)
-          .then((items) => items.map(toReceiptListItem))
-          .catch(() => [] as ReturnType<typeof toReceiptListItem>[])
-      : listReceipts(session.backendToken)
-          .then((data) => data.items)
-          .catch(() => [] as ListReceiptItem[]),
-  ]);
+  const receipts = await (roomId
+    ? listRoomReceipts(roomId, session.backendToken)
+        .then((items) => items.map(toReceiptListItem))
+        .catch(() => [] as ReturnType<typeof toReceiptListItem>[])
+    : listReceipts(session.backendToken)
+        .then((data) => data.items)
+        .catch(() => [] as ListReceiptItem[]));
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
       <AppHeader currentPath="/receipts" />
 
       <main className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
-        <ReceiptTabs rooms={rooms} currentRoomId={roomId ?? null} />
-
-        <ReceiptUploadCard backendToken={session.backendToken} rooms={rooms} />
+        <ReceiptUploadCard backendToken={session.backendToken} currentRoom={currentRoom} />
 
         <div className="rounded-2xl bg-white shadow-sm dark:bg-zinc-900">
           <div className="border-b border-zinc-100 px-4 py-4 sm:px-8 sm:py-5 dark:border-zinc-800">

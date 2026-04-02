@@ -3,7 +3,6 @@
 import { DragEvent, ChangeEvent, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { getReceipt, uploadReceipt } from '../../../lib/api/receipts';
-import { Room } from '../../../types/room';
 
 const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 120_000;
@@ -27,18 +26,16 @@ type UploadState =
 
 interface ReceiptUploadCardProps {
   backendToken: string;
-  rooms?: Room[];
+  // モード固定済み: roomモードの場合はcurrentRoomを渡す、personalモードはnull
+  currentRoom: { id: string; name: string } | null;
 }
 
 const TERMINAL_STATUSES: FileItemStatus[] = ['success', 'duplicate-warning', 'analysis-failed'];
 
-export function ReceiptUploadCard({ backendToken, rooms }: ReceiptUploadCardProps) {
+export function ReceiptUploadCard({ backendToken, currentRoom }: ReceiptUploadCardProps) {
   const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
   const [isDragging, setIsDragging] = useState(false);
-  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const hasRooms = rooms !== undefined && rooms.length > 0;
 
   const updateFile = (key: string, patch: Partial<Omit<FileItem, 'key'>>) => {
     setUploadState((prev) => {
@@ -103,10 +100,10 @@ export function ReceiptUploadCard({ backendToken, rooms }: ReceiptUploadCardProp
 
     setUploadState({ status: 'processing', files: items });
 
-    // アップロード開始時点のroomIdをキャプチャして全ファイルに適用する
-    const roomIdSnapshot = selectedRoomId ?? undefined;
+    // モード固定済みのroomIdを使用
+    const roomId = currentRoom?.id ?? undefined;
     files.forEach((file, i) => {
-      processFile(file, items[i].key, roomIdSnapshot);
+      processFile(file, items[i].key, roomId);
     });
   };
 
@@ -141,27 +138,11 @@ export function ReceiptUploadCard({ backendToken, rooms }: ReceiptUploadCardProp
         レシートをアップロード
       </h2>
 
-      {hasRooms && (
+      {currentRoom && (
         <div className="mb-4">
-          <label
-            htmlFor="room-select"
-            className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-          >
-            投稿先
-          </label>
-          <select
-            id="room-select"
-            value={selectedRoomId ?? ''}
-            onChange={(e) => setSelectedRoomId(e.target.value || null)}
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:focus:border-zinc-400"
-          >
-            <option value="">個人</option>
-            {rooms.map((room) => (
-              <option key={room.id} value={room.id}>
-                {room.name}
-              </option>
-            ))}
-          </select>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            投稿先: <span className="font-medium text-zinc-700 dark:text-zinc-300">{currentRoom.name}</span>
+          </p>
         </div>
       )}
 
