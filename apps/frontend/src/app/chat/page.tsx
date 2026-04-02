@@ -1,21 +1,30 @@
 import { auth } from '../../../auth';
 import { redirect } from 'next/navigation';
 import { AppHeader } from '../../components/AppHeader';
-import { ChatPanel } from './_components/ChatPanel';
+import { ChatContainer } from './_components/ChatContainer';
 
-export default async function ChatPage() {
+export default async function ChatPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ session?: string }>;
+}) {
   const session = await auth();
 
   if (!session) {
     redirect('/');
   }
 
+  const { session: sessionId } = await searchParams;
+
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black">
+    <div className="flex h-screen flex-col bg-zinc-50 dark:bg-black">
       <AppHeader currentPath="/chat" />
 
-      <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
-        <ChatPanel backendToken={session.backendToken} />
+      <main className="flex flex-1 overflow-hidden">
+        <ChatContainer
+          backendToken={session.backendToken}
+          sessionId={sessionId ?? null}
+        />
       </main>
     </div>
   );
