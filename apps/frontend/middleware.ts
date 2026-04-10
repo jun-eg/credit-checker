@@ -6,12 +6,9 @@ const PUBLIC_PATHS = ['/', '/select'];
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
-  // new URL() は basePath を付与しないため nextUrl.clone() で basePath を保持する
-  const redirect = (path: string) => {
-    const url = req.nextUrl.clone();
-    url.pathname = path;
-    return NextResponse.redirect(url);
-  };
+  // NextURL.clone() 経由でも adapter が basePath を落とすため、直接 basePath を付与する
+  const redirect = (path: string) =>
+    NextResponse.redirect(new URL(`${req.nextUrl.basePath}${path}`, req.url));
 
   // 未認証: ログインページ以外はトップへ
   if (!req.auth && pathname !== '/') {
