@@ -1,14 +1,21 @@
 import { auth } from './auth';
 import { NextResponse } from 'next/server';
+import nextConfig from './next.config';
 
+// Auth.js の reqWithEnvURL が nextConfig を落とすため
+// req.nextUrl.basePath が空、pathname に basePath が残る場合がある。
+// next.config から直接読み込んで両方を自前で処理する。
+const BASE_PATH = nextConfig.basePath ?? '';
 const PUBLIC_PATHS = ['/', '/select'];
 
 export default auth((req) => {
-  const { pathname } = req.nextUrl;
+  const raw = req.nextUrl.pathname;
+  const pathname = raw.startsWith(BASE_PATH)
+    ? raw.slice(BASE_PATH.length) || '/'
+    : raw;
 
-  // NextURL.clone() 経由でも adapter が basePath を落とすため、直接 basePath を付与する
   const redirect = (path: string) =>
-    NextResponse.redirect(new URL(`${req.nextUrl.basePath}${path}`, req.url));
+    NextResponse.redirect(new URL(`${BASE_PATH}${path}`, req.url));
 
   // 未認証: ログインページ以外はトップへ
   if (!req.auth && pathname !== '/') {
