@@ -40,3 +40,27 @@ export interface RoomReceiptItem {
   currency: string | null;
   createdAt: string;
 }
+
+export interface RoomInvitation {
+  token: string;
+  url: string;
+  expiresAt: string;
+}
+
+export type AcceptInvitationErrorCode =
+  | 'not_found'
+  | 'expired'
+  | 'already_used'
+  | 'already_member'
+  | 'unauthorized'
+  | 'unknown';
+
+export class AcceptInvitationError extends Error {
+  readonly code: AcceptInvitationErrorCode;
+
+  constructor(code: AcceptInvitationErrorCode, message: string) {
+    super(message);
+    this.name = 'AcceptInvitationError';
+    this.code = code;
+  }
+}

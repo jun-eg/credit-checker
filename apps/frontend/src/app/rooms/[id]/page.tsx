@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { auth } from '../../../../auth';
 import { AppHeader } from '../../../components/AppHeader';
 import { getRoom } from '../../../lib/api/rooms';
+import { InvitationLinkPanel } from './_components/InvitationLinkPanel';
 import { InviteCodeDisplay } from './_components/InviteCodeDisplay';
 import { RoomActions } from './_components/RoomActions';
 
@@ -80,6 +81,16 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
                 招待コード
               </h2>
               <InviteCodeDisplay inviteCode={room.inviteCode} />
+            </div>
+          )}
+
+          {/* 期限付き招待リンク（オーナーのみ） */}
+          {isOwner && (
+            <div className="border-b border-zinc-100 px-4 py-4 sm:px-8 dark:border-zinc-800">
+              <h2 className="mb-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                招待リンク（期限付き）
+              </h2>
+              <InvitationLinkPanel roomId={room.id} backendToken={session.backendToken} />
             </div>
           )}
 
