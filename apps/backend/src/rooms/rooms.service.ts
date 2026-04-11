@@ -1,6 +1,8 @@
+import { randomBytes } from 'crypto';
 import {
   ConflictException,
   ForbiddenException,
+  GoneException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,7 +10,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Room } from '../entities/room.entity';
 import { RoomMember, RoomMemberRole } from '../entities/room-member.entity';
+import { RoomInvitation } from '../entities/room-invitation.entity';
 import { Receipt } from '../entities/receipt.entity';
+
+// 招待リンクは発行から30分で失効する
+const INVITATION_TTL_MS = 30 * 60 * 1000;
+
 @Injectable()
 export class RoomsService {
   constructor(
@@ -16,6 +23,8 @@ export class RoomsService {
     private readonly roomsRepository: Repository<Room>,
     @InjectRepository(RoomMember)
     private readonly roomMembersRepository: Repository<RoomMember>,
+    @InjectRepository(RoomInvitation)
+    private readonly roomInvitationsRepository: Repository<RoomInvitation>,
     @InjectRepository(Receipt)
     private readonly receiptsRepository: Repository<Receipt>,
   ) {}
@@ -165,5 +174,99 @@ export class RoomsService {
     return Array.from({ length: 8 }, () =>
       chars.charAt(Math.floor(Math.random() * chars.length)),
     ).join('');
+  }
+
+  async issueInvitation(
+    roomId: string,
+    userId: string,
+  ): Promise<{ invitation: RoomInvitation; url: string }> {
+    const member = await this.roomMembersRepository.findOne({
+      where: { roomId, userId },
+    });
+    // 招待リンク発行はオーナーのみ許可
+    if (!member || member.role !== RoomMemberRole.OWNER) {
+      throw new ForbiddenException('招待リンクの発行はオーナーのみ可能です');
+    }
+
+    const room = await this.roomsRepository.findOne({ where: { id: roomId } });
+    if (!room) {
+      throw new NotFoundException(`ルームが見つかりません: ${roomId}`);
+    }
+
+    const token = this.generateInvitationToken();
+    const expiresAt = new Date(Date.now() + INVITATION_TTL_MS);
+
+    const invitation = this.roomInvitationsRepository.create({
+      roomId,
+      token,
+      createdBy: userId,
+      expiresAt,
+      usedBy: null,
+      usedAt: null,
+    });
+    const saved = await this.roomInvitationsRepository.save(invitation);
+
+    return { invitation: saved, url: this.buildInvitationUrl(token) };
+  }
+
+  async acceptInvitation(token: string, userId: string): Promise<Room> {
+    return this.roomInvitationsRepository.manager.transaction(async (manager) => {
+      // 同時に同じトークンを使おうとするリクエストを直列化するため、行ロックで読む
+      const invitation = await manager
+        .getRepository(RoomInvitation)
+        .createQueryBuilder('inv')
+        .setLock('pessimistic_write')
+        .where('inv.token = :token', { token })
+        .getOne();
+
+      if (!invitation) {
+        throw new NotFoundException('招待リンクが見つかりません');
+      }
+      if (invitation.expiresAt.getTime() <= Date.now()) {
+        throw new GoneException('招待リンクの有効期限が切れています');
+      }
+      if (invitation.usedBy) {
+        throw new ConflictException('この招待リンクは既に使用されています');
+      }
+
+      const existing = await manager.getRepository(RoomMember).findOne({
+        where: { roomId: invitation.roomId, userId },
+      });
+      // 既メンバーの場合は招待リンクを消費せず、冪等的にエラーとする
+      if (existing) {
+        throw new ConflictException('既にこのルームのメンバーです');
+      }
+
+      invitation.usedBy = userId;
+      invitation.usedAt = new Date();
+      await manager.getRepository(RoomInvitation).save(invitation);
+
+      const newMember = manager.getRepository(RoomMember).create({
+        roomId: invitation.roomId,
+        userId,
+        role: RoomMemberRole.MEMBER,
+      });
+      await manager.getRepository(RoomMember).save(newMember);
+
+      const room = await manager
+        .getRepository(Room)
+        .findOne({ where: { id: invitation.roomId } });
+      if (!room) {
+        throw new NotFoundException('ルームが見つかりません');
+      }
+      return room;
+    });
+  }
+
+  // URL-safe base64 で 256bit のランダムトークンを生成する（43文字）
+  private generateInvitationToken(): string {
+    return randomBytes(32).toString('base64url');
+  }
+
+  private buildInvitationUrl(token: string): string {
+    const base = process.env.FRONTEND_URL ?? '';
+    // 末尾スラッシュの重複を避ける
+    const normalized = base.replace(/\/$/, '');
+    return `${normalized}/rooms/join?token=${token}`;
   }
 }

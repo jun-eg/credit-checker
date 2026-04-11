@@ -6,11 +6,12 @@ import { ChatSession } from '../entities/chat-session.entity';
 import { ChatMessage } from '../entities/chat-message.entity';
 import { Room } from '../entities/room.entity';
 import { RoomMember } from '../entities/room-member.entity';
+import { RoomInvitation } from '../entities/room-invitation.entity';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
-  entities: [User, Receipt, ReceiptItem, ChatSession, ChatMessage, Room, RoomMember],
+  entities: [User, Receipt, ReceiptItem, ChatSession, ChatMessage, Room, RoomMember, RoomInvitation],
   migrations: ['dist/migrations/*.js'],
   synchronize: false,
   logging: process.env.TYPEORM_LOGGING === 'true',

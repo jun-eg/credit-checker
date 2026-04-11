@@ -1,4 +1,11 @@
-import { Room, RoomDetail, RoomReceiptItem } from '../../types/room';
+import {
+  AcceptInvitationError,
+  AcceptInvitationErrorCode,
+  Room,
+  RoomDetail,
+  RoomInvitation,
+  RoomReceiptItem,
+} from '../../types/room';
 
 // SSR: BACKEND_URL（サーバー側env var）でバックエンドに直接通信
 // クライアント: /api/v1 の相対パス（本番はALBが転送、ローカルはNext.js rewriteがプロキシ）
@@ -106,4 +113,67 @@ export async function listRoomReceipts(
 
   const data = (await res.json()) as { items: RoomReceiptItem[] };
   return data.items;
+}
+
+export async function issueRoomInvitation(
+  roomId: string,
+  backendToken: string,
+): Promise<RoomInvitation> {
+  const res = await fetch(`${backendUrl}/rooms/${roomId}/invitations`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${backendToken}` },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`招待リンクの発行に失敗しました (${res.status}): ${text}`);
+  }
+
+  return res.json() as Promise<RoomInvitation>;
+}
+
+// エラー種別をサーバー応答のステータスコードから判別する
+function resolveAcceptInvitationError(
+  status: number,
+  body: string,
+): AcceptInvitationError {
+  const codeByStatus: Record<number, AcceptInvitationErrorCode> = {
+    401: 'unauthorized',
+    404: 'not_found',
+    410: 'expired',
+  };
+  let code: AcceptInvitationErrorCode = codeByStatus[status] ?? 'unknown';
+  // 409 は「使用済み」と「既メンバー」のいずれか。サーバーメッセージで判別する
+  if (status === 409) {
+    code = /既に.*メンバー/.test(body) ? 'already_member' : 'already_used';
+  }
+  const messageByCode: Record<AcceptInvitationErrorCode, string> = {
+    not_found: '招待リンクが無効です',
+    expired: '招待リンクの有効期限が切れています',
+    already_used: 'この招待リンクは既に使用されています',
+    already_member: 'すでにこのルームのメンバーです',
+    unauthorized: 'ログインが必要です',
+    unknown: `招待リンクの受諾に失敗しました (${status})`,
+  };
+  return new AcceptInvitationError(code, messageByCode[code]);
+}
+
+export async function acceptRoomInvitation(
+  invitationToken: string,
+  backendToken: string,
+): Promise<Room> {
+  const res = await fetch(
+    `${backendUrl}/rooms/invitations/${encodeURIComponent(invitationToken)}/accept`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${backendToken}` },
+    },
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw resolveAcceptInvitationError(res.status, text);
+  }
+
+  return res.json() as Promise<Room>;
 }

@@ -14,6 +14,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
 import { RoomMemberRole } from '../entities/room-member.entity';
 import { CreateRoomRequestDto } from './dto/create-room.request.dto';
+import { IssueInvitationResponseDto } from './dto/issue-invitation.response.dto';
 import { JoinRoomRequestDto } from './dto/join-room.request.dto';
 import { RoomDetailResponseDto, RoomResponseDto } from './dto/room.response.dto';
 import { ListRoomReceiptsResponseDto } from './dto/room-receipt.response.dto';
@@ -67,6 +68,22 @@ export class RoomsController {
     };
   }
 
+  // /rooms/:id との衝突を避けるため、literal prefix の invitations ルートを先に定義
+  @Post('invitations/:token/accept')
+  async acceptInvitation(
+    @CurrentUser() user: User,
+    @Param('token') token: string,
+  ): Promise<RoomResponseDto> {
+    const room = await this.roomsService.acceptInvitation(token, user.id);
+    return {
+      id: room.id,
+      name: room.name,
+      ownerId: room.ownerId,
+      memberCount: room.members?.length ?? 0,
+      createdAt: room.createdAt,
+    };
+  }
+
   @Post(':id/invite-code/regenerate')
   async regenerateInviteCode(
     @CurrentUser() user: User,
@@ -74,6 +91,22 @@ export class RoomsController {
   ): Promise<{ inviteCode: string }> {
     const room = await this.roomsService.regenerateInviteCode(id, user.id);
     return { inviteCode: room.inviteCode };
+  }
+
+  @Post(':id/invitations')
+  async issueInvitation(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<IssueInvitationResponseDto> {
+    const { invitation, url } = await this.roomsService.issueInvitation(
+      id,
+      user.id,
+    );
+    return {
+      token: invitation.token,
+      url,
+      expiresAt: invitation.expiresAt,
+    };
   }
 
   @Get(':id/receipts')
