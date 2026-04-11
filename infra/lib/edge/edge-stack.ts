@@ -85,7 +85,7 @@ export class EdgeStack extends cdk.Stack {
       protocol: elbv2.ApplicationProtocol.HTTP,
       targets: [frontendService],
       healthCheck: {
-        path: '/credit-checker',
+        path: '/',
         interval: cdk.Duration.seconds(30),
       },
     });
@@ -108,14 +108,14 @@ export class EdgeStack extends cdk.Stack {
         // Next.js Server Action は POST を使用するため ALL を許可する
         allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
       },
-      domainNames: [config.domain],
+      domainNames: [config.frontendDomain],
       certificate,
     });
 
     // Route53 A レコード → CloudFront
     new route53.ARecord(this, 'AliasRecord', {
       zone: hostedZone,
-      recordName: config.domain,
+      recordName: config.frontendDomain,
       target: route53.RecordTarget.fromAlias(
         new route53Targets.CloudFrontTarget(distribution),
       ),

@@ -135,9 +135,9 @@ export class AppStack extends cdk.Stack {
         NODE_ENV: config.nodeEnv,
         FRONTEND_PORT: String(config.ports.frontend),
         AUTH_GOOGLE_ID: config.authGoogleId,
-        BACKEND_URL: `https://${config.domain}/api/v1`,
-        NEXT_PUBLIC_BACKEND_URL: `https://${config.domain}/api/v1`,
-        AUTH_URL: `https://${config.domain}/credit-checker/api/auth`,
+        BACKEND_URL: `https://${config.frontendDomain}/api/v1`,
+        NEXT_PUBLIC_BACKEND_URL: `https://${config.frontendDomain}/api/v1`,
+        AUTH_URL: `https://${config.frontendDomain}/api/auth`,
       },
       secrets: {
         AUTH_SECRET: ecs.Secret.fromSecretsManager(authSecret),
@@ -190,7 +190,7 @@ export class AppStack extends cdk.Stack {
         TYPEORM_LOGGING: String(config.typeormLogging),
         AWS_REGION: config.env.region,
         S3_BUCKET_NAME: appBucket.bucketName,
-        FRONTEND_URL: `https://${config.domain}`,
+        FRONTEND_URL: `https://${config.frontendDomain}`,
       },
       secrets: {
         JWT_SECRET: ecs.Secret.fromSecretsManager(jwtSecret),

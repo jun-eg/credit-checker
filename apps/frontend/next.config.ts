@@ -1,13 +1,12 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  basePath: '/credit-checker',
   output: 'standalone',
   experimental: {
     // CloudFront → ALB 経由だと Host ヘッダーが ALB の DNS 名に書き換わり
     // Next.js の Server Action CSRF チェックが 403 を返すため許可ドメインを明示する
     serverActions: {
-      allowedOrigins: ['dev.jun-eg.site', 'jun-eg.site'],
+      allowedOrigins: ['credit-checker.dev.jun-eg.site', 'credit-checker.jun-eg.site'],
     },
   },
   async rewrites() {

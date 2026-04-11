@@ -57,7 +57,7 @@ export function AppHeader({ currentPath }: AppHeaderProps) {
             <form
               action={async () => {
                 'use server';
-                await signOut({ redirectTo: '/credit-checker/' });
+                await signOut({ redirectTo: '/' });
               }}
             >
               <button
