@@ -11,6 +11,7 @@ import { Receipt } from './entities/receipt.entity';
 import { ReceiptItem } from './entities/receipt-item.entity';
 import { Room } from './entities/room.entity';
 import { RoomMember } from './entities/room-member.entity';
+import { RoomInvitation } from './entities/room-invitation.entity';
 import { User } from './entities/user.entity';
 import { UsersModule } from './users/users.module';
 import { ChatModule } from './chat/chat.module';
@@ -34,7 +35,7 @@ import { secrets } from './config/secrets';
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         url: secrets.databaseUrl(),
-        entities: [User, Receipt, ReceiptItem, ChatSession, ChatMessage, Room, RoomMember],
+        entities: [User, Receipt, ReceiptItem, ChatSession, ChatMessage, Room, RoomMember, RoomInvitation],
         migrations: ['dist/migrations/*.js'],
         synchronize: false,
         logging: process.env.TYPEORM_LOGGING === 'true',
