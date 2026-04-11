@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { signOut } from '../../auth';
 import { ExitButton } from './ExitButton';
+import { RoomSettingsNavLink } from './RoomSettingsNavLink';
 
 interface AppHeaderProps {
   currentPath?: string;
@@ -50,6 +51,7 @@ export function AppHeader({ currentPath }: AppHeaderProps) {
               >
                 チャット
               </Link>
+              <RoomSettingsNavLink />
             </nav>
           </div>
           <div className="flex items-center gap-4">
