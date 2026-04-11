@@ -14,8 +14,8 @@ interface CountdownState {
   expired: boolean;
 }
 
-function formatCountdown(expiresAt: string): CountdownState {
-  const remainingMs = new Date(expiresAt).getTime() - Date.now();
+function formatCountdown(expiresAt: string, now: number): CountdownState {
+  const remainingMs = new Date(expiresAt).getTime() - now;
   if (remainingMs <= 0) {
     return { label: '失効済み', expired: true };
   }
@@ -32,20 +32,19 @@ export function InvitationLinkPanel({ roomId, backendToken }: InvitationLinkPane
   const [invitation, setInvitation] = useState<RoomInvitation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [countdown, setCountdown] = useState<CountdownState | null>(null);
+  // カウントダウンは invitation と now から描画中に派生するため、now を interval で進めて再描画を起こす
+  const [now, setNow] = useState<number>(() => Date.now());
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (!invitation) {
-      setCountdown(null);
-      return;
-    }
-    // 1秒ごとに残り時間を再計算する（失効後も1度更新するため即時更新→interval）
-    const update = () => setCountdown(formatCountdown(invitation.expiresAt));
-    update();
-    const id = window.setInterval(update, 1000);
+    if (!invitation) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, [invitation]);
+
+  const countdown: CountdownState | null = invitation
+    ? formatCountdown(invitation.expiresAt, now)
+    : null;
 
   const handleIssue = () => {
     startTransition(async () => {
