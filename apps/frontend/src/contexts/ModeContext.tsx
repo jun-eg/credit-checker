@@ -7,7 +7,7 @@ export type AppMode =
   | { type: 'room'; room: { id: string; name: string } };
 
 const COOKIE_NAME = 'app-mode';
-const COOKIE_PATH = '/credit-checker';
+const COOKIE_PATH = '/';
 
 function encodeMode(mode: AppMode): string {
   if (mode.type === 'personal') return 'personal';

@@ -5,6 +5,7 @@ export interface EnvironmentConfig {
     region: string;
   };
   domain: string;
+  frontendDomain: string;
   scaling: {
     frontend: { minCapacity: number; maxCapacity: number };
     backend: { minCapacity: number; maxCapacity: number };

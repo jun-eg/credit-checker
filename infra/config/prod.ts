@@ -7,6 +7,7 @@ export const prodConfig: EnvironmentConfig = {
     region: process.env.AWS_REGION!,
   },
   domain: 'jun-eg.site',
+  frontendDomain: 'credit-checker.jun-eg.site',
   scaling: {
     frontend: { minCapacity: 1, maxCapacity: 3 },
     backend: { minCapacity: 1, maxCapacity: 3 },
