@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { auth } from '../../../../auth';
 import { AppHeader } from '../../../components/AppHeader';
@@ -33,17 +32,6 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
       <AppHeader currentPath={`/rooms/${id}`} />
       <main className="mx-auto max-w-4xl space-y-6 px-4 py-6">
-
-        {/* 戻るリンク */}
-        <Link
-          href="/rooms"
-          className="inline-flex items-center gap-1 text-sm text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          ルーム一覧
-        </Link>
 
         {/* ルーム情報 */}
         <div className="rounded-2xl bg-white shadow-sm dark:bg-zinc-900">
@@ -93,24 +81,6 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
               <InvitationLinkPanel roomId={room.id} backendToken={session.backendToken} />
             </div>
           )}
-
-          {/* アクションリンク */}
-          <div className="border-b border-zinc-100 px-4 py-4 sm:px-8 dark:border-zinc-800">
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href={`/receipts?roomId=${room.id}`}
-                className="rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-              >
-                レシートを見る →
-              </Link>
-              <Link
-                href="/chat"
-                className="rounded-lg px-3 py-1.5 text-sm text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
-              >
-                チャット →
-              </Link>
-            </div>
-          </div>
 
           {/* 退出・削除 */}
           <div className="px-4 py-4 sm:px-8">
