@@ -4,6 +4,7 @@ import { AppHeader } from '../../../components/AppHeader';
 import { getRoom } from '../../../lib/api/rooms';
 import { InvitationLinkPanel } from './_components/InvitationLinkPanel';
 import { InviteCodeDisplay } from './_components/InviteCodeDisplay';
+import { MemberList } from './_components/MemberList';
 import { RoomActions } from './_components/RoomActions';
 
 interface RoomDetailPageProps {
@@ -46,20 +47,12 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
             <h2 className="mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
               メンバー ({room.members.length}人)
             </h2>
-            <ul className="space-y-2">
-              {room.members.map((member) => (
-                <li key={member.id} className="flex items-center gap-2">
-                  <span className="text-sm text-zinc-900 dark:text-zinc-50">
-                    {member.displayName ?? member.userId}
-                  </span>
-                  {member.role === 'owner' && (
-                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                      オーナー
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <MemberList
+              members={room.members}
+              isOwner={isOwner}
+              roomId={room.id}
+              backendToken={session.backendToken}
+            />
           </div>
 
           {/* 招待コード（オーナーのみ） */}

@@ -175,4 +175,14 @@ export class RoomsController {
   ): Promise<void> {
     await this.roomsService.leaveRoom(id, user.id);
   }
+
+  @Delete(':id/members/:memberId')
+  @HttpCode(204)
+  async removeMember(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('memberId', ParseUUIDPipe) memberId: string,
+  ): Promise<void> {
+    await this.roomsService.removeMember(id, user.id, memberId);
+  }
 }

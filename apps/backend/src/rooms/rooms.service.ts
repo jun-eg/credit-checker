@@ -110,6 +110,34 @@ export class RoomsService {
     await this.roomMembersRepository.remove(member);
   }
 
+  async removeMember(
+    roomId: string,
+    ownerUserId: string,
+    targetMemberId: string,
+  ): Promise<void> {
+    const ownerMember = await this.roomMembersRepository.findOne({
+      where: { roomId, userId: ownerUserId },
+    });
+    if (!ownerMember || ownerMember.role !== RoomMemberRole.OWNER) {
+      throw new ForbiddenException('メンバーの除外はオーナーのみ可能です');
+    }
+
+    const targetMember = await this.roomMembersRepository.findOne({
+      where: { id: targetMemberId, roomId },
+    });
+    if (!targetMember) {
+      throw new NotFoundException('対象メンバーが見つかりません');
+    }
+
+    if (targetMember.role === RoomMemberRole.OWNER) {
+      throw new ForbiddenException(
+        'オーナー自身は除外できません。ルームを解散してください',
+      );
+    }
+
+    await this.roomMembersRepository.remove(targetMember);
+  }
+
   async joinRoom(userId: string, inviteCode: string): Promise<Room> {
     const room = await this.roomsRepository.findOne({ where: { inviteCode } });
     if (!room) {
