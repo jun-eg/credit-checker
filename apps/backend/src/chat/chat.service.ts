@@ -59,6 +59,21 @@ export class ChatService {
     });
   }
 
+  async updateSessionTitle(
+    sessionId: string,
+    userId: string,
+    title: string,
+  ): Promise<ChatSession> {
+    const session = await this.findSessionOrThrow(sessionId, userId);
+    session.title = title;
+    return this.sessionsRepository.save(session);
+  }
+
+  async deleteSession(sessionId: string, userId: string): Promise<void> {
+    const session = await this.findSessionOrThrow(sessionId, userId);
+    await this.sessionsRepository.remove(session);
+  }
+
   async getMessages(sessionId: string, userId: string): Promise<ChatMessage[]> {
     const session = await this.findSessionOrThrow(sessionId, userId);
     return this.messagesRepository.find({

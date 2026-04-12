@@ -55,6 +55,33 @@ export async function getChatMessages(
   return data.messages;
 }
 
+export async function updateChatSession(
+  sessionId: string,
+  title: string,
+  token: string,
+): Promise<ChatSession> {
+  return request<ChatSession>(`/chat/sessions/${sessionId}`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ title }),
+  });
+}
+
+export async function deleteChatSession(
+  sessionId: string,
+  token: string,
+): Promise<void> {
+  const res = await fetch(`${backendUrl}/chat/sessions/${sessionId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`APIエラー (${res.status}): ${text}`);
+  }
+}
+
 export async function sendChatMessage(
   sessionId: string,
   message: string,

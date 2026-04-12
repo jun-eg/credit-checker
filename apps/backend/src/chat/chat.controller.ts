@@ -1,9 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -16,6 +19,8 @@ import { ListMessagesResponseDto } from './dto/list-messages.response.dto';
 import { ListSessionsResponseDto } from './dto/list-sessions.response.dto';
 import { SendMessageRequestDto } from './dto/send-message.request.dto';
 import { SendMessageResponseDto } from './dto/send-message.response.dto';
+import { UpdateSessionRequestDto } from './dto/update-session.request.dto';
+import { UpdateSessionResponseDto } from './dto/update-session.response.dto';
 import { MessageRole } from '../entities/chat-message.entity';
 
 @Controller('chat')
@@ -47,6 +52,33 @@ export class ChatController {
         createdAt: s.createdAt,
       })),
     };
+  }
+
+  @Patch('sessions/:id')
+  async updateSession(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateSessionRequestDto,
+  ): Promise<UpdateSessionResponseDto> {
+    const session = await this.chatService.updateSessionTitle(
+      id,
+      user.id,
+      body.title,
+    );
+    return {
+      id: session.id,
+      title: session.title ?? '',
+      createdAt: session.createdAt,
+    };
+  }
+
+  @Delete('sessions/:id')
+  @HttpCode(204)
+  async deleteSession(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    await this.chatService.deleteSession(id, user.id);
   }
 
   @Get('sessions/:id/messages')
