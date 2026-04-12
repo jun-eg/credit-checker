@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { SessionSidebar } from './SessionSidebar';
 import { MessageThread } from './MessageThread';
 
@@ -10,8 +10,10 @@ interface ChatContainerProps {
 }
 
 export function ChatContainer({ backendToken, sessionId }: ChatContainerProps) {
-  // MessageThread からメッセージ送信完了を受け取り、SessionSidebar のセッション一覧を再取得する
   const refreshSessionsRef = useRef<(() => void) | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches,
+  );
 
   const handleSessionsRefresh = (refresh: () => void) => {
     refreshSessionsRef.current = refresh;
@@ -27,9 +29,10 @@ export function ChatContainer({ backendToken, sessionId }: ChatContainerProps) {
         backendToken={backendToken}
         currentSessionId={sessionId}
         onSessionsRefresh={handleSessionsRefresh}
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen((prev) => !prev)}
       />
       {sessionId ? (
-        // key でセッション切り替え時に再マウントし状態をリセットする
         <MessageThread
           key={sessionId}
           backendToken={backendToken}
@@ -39,7 +42,7 @@ export function ChatContainer({ backendToken, sessionId }: ChatContainerProps) {
       ) : (
         <div className="flex flex-1 items-center justify-center">
           <p className="text-sm text-zinc-400 dark:text-zinc-500">
-            左のサイドバーからチャットを選択するか、新規チャットを開始してください
+            サイドバーからチャットを選択するか、新規チャットを開始してください
           </p>
         </div>
       )}
