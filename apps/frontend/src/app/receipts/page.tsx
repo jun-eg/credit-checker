@@ -1,6 +1,7 @@
 import { auth } from '../../../auth';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import Link from 'next/link';
 import { AppHeader } from '../../components/AppHeader';
 import { ReceiptUploadCard } from '../dashboard/_components/ReceiptUploadCard';
 import { ReceiptList } from './_components/ReceiptList';
@@ -61,10 +62,20 @@ export default async function ReceiptsPage() {
         <ReceiptUploadCard backendToken={session.backendToken} currentRoom={currentRoom} />
 
         <div className="rounded-2xl bg-white shadow-sm dark:bg-zinc-900">
-          <div className="border-b border-zinc-100 px-4 py-4 sm:px-8 sm:py-5 dark:border-zinc-800">
+          <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-4 sm:px-8 sm:py-5 dark:border-zinc-800">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               レシート一覧
             </h2>
+            <Link
+              href="/receipts/trash"
+              className="flex items-center gap-1 text-xs text-zinc-400 transition-colors hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+              ゴミ箱
+            </Link>
           </div>
           <ReceiptList
             receipts={receipts}

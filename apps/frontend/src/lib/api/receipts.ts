@@ -133,6 +133,43 @@ export async function deleteReceipt(id: string, token: string): Promise<void> {
   }
 }
 
+export async function getTrashReceipts(token: string): Promise<ListReceiptsResponse> {
+  const res = await fetch(`${backendUrl}/receipts/trash`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`取得に失敗しました (${res.status}): ${text}`);
+  }
+
+  return res.json() as Promise<ListReceiptsResponse>;
+}
+
+export async function restoreReceipt(id: string, token: string): Promise<void> {
+  const res = await fetch(`${backendUrl}/receipts/${id}/restore`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`復元に失敗しました (${res.status}): ${text}`);
+  }
+}
+
+export async function permanentDeleteReceipt(id: string, token: string): Promise<void> {
+  const res = await fetch(`${backendUrl}/receipts/${id}/permanent`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`完全削除に失敗しました (${res.status}): ${text}`);
+  }
+}
+
 export async function getReceiptImagePresignedUrl(id: string, token: string): Promise<string> {
   const res = await fetch(`${backendUrl}/receipts/${id}/image-url`, {
     headers: { Authorization: `Bearer ${token}` },

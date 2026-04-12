@@ -46,6 +46,7 @@ export interface ListReceiptItem {
   possibleDuplicateIds: string[] | null;
   categories: string[];
   createdAt: string;
+  deletedAt?: string | null;
 }
 
 export interface ListReceiptsResponse {

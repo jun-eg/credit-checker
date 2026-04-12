@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from '../auth/auth.module';
 import { Receipt } from '../entities/receipt.entity';
 import { ReceiptItem } from '../entities/receipt-item.entity';
@@ -12,6 +13,7 @@ import { ReceiptsService } from './receipts.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Receipt, ReceiptItem, RoomMember]),
+    ScheduleModule.forRoot(),
     S3Module,
     OpenAiModule,
     AuthModule,
