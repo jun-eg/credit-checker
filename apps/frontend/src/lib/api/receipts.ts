@@ -64,8 +64,11 @@ export async function getMonthlySummary(
   token: string,
   year: number,
   month: number,
+  roomId?: string,
 ): Promise<MonthlySummaryResponse> {
-  const res = await fetch(`${backendUrl}/receipts/summary?year=${year}&month=${month}`, {
+  const params = new URLSearchParams({ year: String(year), month: String(month) });
+  if (roomId) params.set('roomId', roomId);
+  const res = await fetch(`${backendUrl}/receipts/summary?${params}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
@@ -80,8 +83,11 @@ export async function getMonthlySummary(
 export async function getYearlySummary(
   token: string,
   year: number,
+  roomId?: string,
 ): Promise<YearlySummaryResponse> {
-  const res = await fetch(`${backendUrl}/receipts/yearly?year=${year}`, {
+  const params = new URLSearchParams({ year: String(year) });
+  if (roomId) params.set('roomId', roomId);
+  const res = await fetch(`${backendUrl}/receipts/yearly?${params}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
