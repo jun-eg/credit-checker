@@ -9,18 +9,23 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ currentPath }: AppHeaderProps) {
+  const handleSignOut = async () => {
+    'use server';
+    await signOut({ redirectTo: '/' });
+  };
+
   return (
     <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
         <div className="flex items-start justify-between py-3 sm:items-center sm:py-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-6">
             <Link
               href="/dashboard"
               className="text-lg font-semibold text-zinc-900 dark:text-zinc-50"
             >
               Credit Checker
             </Link>
-            <nav className="flex items-center gap-4">
+            <nav className="flex items-center justify-evenly sm:justify-normal sm:gap-4">
               <Link
                 href="/dashboard"
                 className={`text-sm transition-colors ${
@@ -55,22 +60,27 @@ export function AppHeader({ currentPath }: AppHeaderProps) {
                 <span className="hidden sm:inline">チャット</span>
               </Link>
               <RoomSettingsNavLink />
+              <div className="sm:hidden">
+                <ExitButton />
+              </div>
+              <form action={handleSignOut} className="sm:hidden">
+                <button
+                  type="submit"
+                  className="text-sm text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+                >
+                  <LogOut size={18} />
+                </button>
+              </form>
             </nav>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="hidden items-center gap-4 sm:flex">
             <ExitButton />
-            <form
-              action={async () => {
-                'use server';
-                await signOut({ redirectTo: '/' });
-              }}
-            >
+            <form action={handleSignOut}>
               <button
                 type="submit"
-                className="shrink-0 pt-0.5 text-sm text-zinc-500 transition-colors hover:text-zinc-900 sm:pt-0 dark:text-zinc-400 dark:hover:text-zinc-50"
+                className="shrink-0 text-sm text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
               >
-                <LogOut size={18} className="sm:hidden" />
-                <span className="hidden sm:inline">ログアウト</span>
+                ログアウト
               </button>
             </form>
           </div>

@@ -16,7 +16,7 @@ export function ExitButton() {
   return (
     <button
       onClick={handleExit}
-      className="shrink-0 pt-0.5 text-sm text-zinc-500 transition-colors hover:text-zinc-900 sm:pt-0 dark:text-zinc-400 dark:hover:text-zinc-50"
+      className="shrink-0 text-sm text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
     >
       <Signpost size={18} className="sm:hidden" />
       <span className="hidden sm:inline">退出</span>
