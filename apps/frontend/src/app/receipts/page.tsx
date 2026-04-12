@@ -20,6 +20,7 @@ function toReceiptListItem(item: RoomReceiptItem): ListReceiptItem & { uploaderD
     total: item.total,
     currency: item.currency,
     possibleDuplicateIds: null,
+    categories: [],
     createdAt: item.createdAt,
     uploaderDisplayName: item.uploaderDisplayName,
   };

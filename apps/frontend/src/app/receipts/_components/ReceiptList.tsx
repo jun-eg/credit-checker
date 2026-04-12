@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useMemo, useTransition, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type UpdateReceiptItemRequest, ListReceiptItem, GetReceiptDetailResponse } from '../../../types/receipt';
@@ -9,6 +9,9 @@ import { ReceiptDetailContent } from '../../../components/ReceiptDetailContent';
 
 // RoomReceiptItemにはpossibleDuplicateIdsがないため、ReceiptListでも共通して扱えるようオプショナルに拡張
 type ReceiptListItem = ListReceiptItem & { uploaderDisplayName?: string | null };
+
+type SortField = 'date' | 'amount';
+type SortDirection = 'asc' | 'desc';
 
 interface ReceiptListProps {
   receipts: ReceiptListItem[];
@@ -89,6 +92,7 @@ function EditModal({ receiptId, backendToken, onClose, onSaved }: EditModalProps
           total: data.total,
           currency: detail?.currency ?? 'JPY',
           possibleDuplicateIds: detail?.possibleDuplicateIds ?? null,
+          categories: [...new Set((detail?.items ?? []).map((item) => item.category ?? 'その他'))],
           createdAt: detail?.createdAt ?? new Date().toISOString(),
         });
       } catch (e) {
@@ -241,6 +245,74 @@ export function ReceiptList({ receipts: initial, backendToken, showUploader }: R
   const [receipts, setReceipts] = useState(initial);
   const [editTargetId, setEditTargetId] = useState<string | null>(null);
 
+  // 並び替え
+  const [sortField, setSortField] = useState<SortField>('date');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  // フィルター
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [amountMin, setAmountMin] = useState('');
+  const [amountMax, setAmountMax] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+
+  const allCategories = useMemo(() => {
+    const cats = new Set<string>();
+    receipts.forEach((r) => (r.categories ?? []).forEach((c) => cats.add(c)));
+    return [...cats].sort();
+  }, [receipts]);
+
+  const filteredAndSorted = useMemo(() => {
+    let result = [...receipts];
+
+    // 期間フィルター
+    if (dateFrom) {
+      const from = new Date(dateFrom).getTime();
+      result = result.filter((r) => {
+        const d = r.purchasedAt ?? r.createdAt;
+        return new Date(d).getTime() >= from;
+      });
+    }
+    if (dateTo) {
+      const to = new Date(dateTo).getTime() + 86400000; // 当日末まで含む
+      result = result.filter((r) => {
+        const d = r.purchasedAt ?? r.createdAt;
+        return new Date(d).getTime() < to;
+      });
+    }
+
+    // 金額フィルター
+    if (amountMin) {
+      const min = Number(amountMin);
+      result = result.filter((r) => r.total !== null && r.total >= min);
+    }
+    if (amountMax) {
+      const max = Number(amountMax);
+      result = result.filter((r) => r.total !== null && r.total <= max);
+    }
+
+    // カテゴリフィルター
+    if (selectedCategory) {
+      result = result.filter((r) => (r.categories ?? []).includes(selectedCategory));
+    }
+
+    // 並び替え
+    result.sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'date') {
+        const da = new Date(a.purchasedAt ?? a.createdAt).getTime();
+        const db = new Date(b.purchasedAt ?? b.createdAt).getTime();
+        cmp = da - db;
+      } else {
+        cmp = (a.total ?? 0) - (b.total ?? 0);
+      }
+      return sortDirection === 'asc' ? cmp : -cmp;
+    });
+
+    return result;
+  }, [receipts, sortField, sortDirection, dateFrom, dateTo, amountMin, amountMax, selectedCategory]);
+
   const handleSaved = (updated: ListReceiptItem) => {
     setReceipts((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
     setEditTargetId(null);
@@ -256,6 +328,16 @@ export function ReceiptList({ receipts: initial, backendToken, showUploader }: R
     }
   };
 
+  const handleClearFilters = () => {
+    setDateFrom('');
+    setDateTo('');
+    setAmountMin('');
+    setAmountMax('');
+    setSelectedCategory('');
+  };
+
+  const hasActiveFilters = dateFrom || dateTo || amountMin || amountMax || selectedCategory;
+
   if (receipts.length === 0) {
     return (
       <div className="px-8 py-12 text-center">
@@ -266,18 +348,131 @@ export function ReceiptList({ receipts: initial, backendToken, showUploader }: R
 
   return (
     <>
-      <ul>
-        {receipts.map((receipt, idx) => (
-          <ReceiptRow
-            key={receipt.id}
-            receipt={receipt}
-            isLast={idx === receipts.length - 1}
-            showUploader={showUploader}
-            onEdit={setEditTargetId}
-            onDelete={handleDelete}
-          />
-        ))}
-      </ul>
+      {/* 並び替え・フィルターツールバー */}
+      <div className="border-b border-zinc-100 px-4 py-3 sm:px-6 dark:border-zinc-800">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* 並び替え */}
+          <select
+            value={`${sortField}-${sortDirection}`}
+            onChange={(e) => {
+              const [field, dir] = e.target.value.split('-') as [SortField, SortDirection];
+              setSortField(field);
+              setSortDirection(dir);
+            }}
+            className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+          >
+            <option value="date-desc">日付（新しい順）</option>
+            <option value="date-asc">日付（古い順）</option>
+            <option value="amount-desc">金額（高い順）</option>
+            <option value="amount-asc">金額（低い順）</option>
+          </select>
+
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${
+              hasActiveFilters
+                ? 'border-blue-300 bg-blue-50 text-blue-600 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-400'
+                : 'border-zinc-200 text-zinc-500 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800'
+            }`}
+          >
+            <FilterIcon /> フィルター{hasActiveFilters ? ' (適用中)' : ''}
+          </button>
+
+          {hasActiveFilters && (
+            <button
+              onClick={handleClearFilters}
+              className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            >
+              クリア
+            </button>
+          )}
+
+          <span className="ml-auto text-xs text-zinc-400 dark:text-zinc-600">
+            {filteredAndSorted.length}/{receipts.length}件
+          </span>
+        </div>
+
+        {/* フィルターパネル */}
+        {showFilters && (
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {/* 期間 */}
+            <div>
+              <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">表示期間</label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full rounded border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                />
+                <span className="text-xs text-zinc-400">〜</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full rounded border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                />
+              </div>
+            </div>
+
+            {/* 金額 */}
+            <div>
+              <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">金額</label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  placeholder="下限"
+                  value={amountMin}
+                  onChange={(e) => setAmountMin(e.target.value)}
+                  className="w-full rounded border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                />
+                <span className="text-xs text-zinc-400">〜</span>
+                <input
+                  type="number"
+                  placeholder="上限"
+                  value={amountMax}
+                  onChange={(e) => setAmountMax(e.target.value)}
+                  className="w-full rounded border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                />
+              </div>
+            </div>
+
+            {/* カテゴリ */}
+            <div>
+              <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">カテゴリ</label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full rounded border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+              >
+                <option value="">すべて</option>
+                {allCategories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {filteredAndSorted.length === 0 ? (
+        <div className="px-8 py-12 text-center">
+          <p className="text-sm text-zinc-400 dark:text-zinc-600">条件に一致するレシートがありません</p>
+        </div>
+      ) : (
+        <ul>
+          {filteredAndSorted.map((receipt, idx) => (
+            <ReceiptRow
+              key={receipt.id}
+              receipt={receipt}
+              isLast={idx === filteredAndSorted.length - 1}
+              showUploader={showUploader}
+              onEdit={setEditTargetId}
+              onDelete={handleDelete}
+            />
+          ))}
+        </ul>
+      )}
 
       {editTargetId && (
         <EditModal
@@ -322,6 +517,14 @@ function CloseIcon() {
         d="M11.782 4.032a.575.575 0 1 0-.813-.814L7.5 6.687 4.032 3.218a.575.575 0 0 0-.814.814L6.687 7.5l-3.469 3.468a.575.575 0 0 0 .814.814L7.5 8.313l3.469 3.469a.575.575 0 0 0 .813-.814L8.313 7.5l3.469-3.468Z"
         fill="currentColor"
       />
+    </svg>
+  );
+}
+
+function FilterIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1 inline-block">
+      <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
     </svg>
   );
 }

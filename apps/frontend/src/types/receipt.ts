@@ -44,6 +44,7 @@ export interface ListReceiptItem {
   total: number | null;
   currency: string | null;
   possibleDuplicateIds: string[] | null;
+  categories: string[];
   createdAt: string;
 }
 
