@@ -9,6 +9,7 @@ export class ListReceiptsItemDto {
   total: number | null;
   currency: string | null;
   possibleDuplicateIds: string[] | null;
+  categories: string[];
   createdAt: Date;
 }
 

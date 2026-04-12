@@ -89,6 +89,7 @@ export class ReceiptsController {
         total: r.total,
         currency: r.currency,
         possibleDuplicateIds: r.possibleDuplicateIds ?? null,
+        categories: [...new Set((r.items ?? []).map((item) => item.category ?? 'その他'))],
         createdAt: r.createdAt,
       })),
     };

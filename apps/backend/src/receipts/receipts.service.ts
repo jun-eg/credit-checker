@@ -321,6 +321,7 @@ export class ReceiptsService {
   async listReceipts(userId: string, roomId?: string): Promise<Receipt[]> {
     const qb = this.receiptsRepository
       .createQueryBuilder('receipt')
+      .leftJoinAndSelect('receipt.items', 'item')
       .where('receipt.user_id = :userId', { userId })
       .orderBy('receipt.created_at', 'DESC');
 
