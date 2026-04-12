@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ChartColumnIncreasing, Receipt, MessageSquareText, LogOut } from 'lucide-react';
 import { signOut } from '../../auth';
 import { ExitButton } from './ExitButton';
 import { RoomSettingsNavLink } from './RoomSettingsNavLink';
@@ -11,7 +12,6 @@ export function AppHeader({ currentPath }: AppHeaderProps) {
   return (
     <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
-        {/* スマホ: ロゴとログアウトを上段、ナビを下段。PC: 全て横並び */}
         <div className="flex items-start justify-between py-3 sm:items-center sm:py-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6">
             <Link
@@ -29,7 +29,8 @@ export function AppHeader({ currentPath }: AppHeaderProps) {
                     : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50'
                 }`}
               >
-                ダッシュボード
+                <ChartColumnIncreasing size={18} className="sm:hidden" />
+                <span className="hidden sm:inline">ダッシュボード</span>
               </Link>
               <Link
                 href="/receipts"
@@ -39,7 +40,8 @@ export function AppHeader({ currentPath }: AppHeaderProps) {
                     : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50'
                 }`}
               >
-                レシート
+                <Receipt size={18} className="sm:hidden" />
+                <span className="hidden sm:inline">レシート</span>
               </Link>
               <Link
                 href="/chat"
@@ -49,7 +51,8 @@ export function AppHeader({ currentPath }: AppHeaderProps) {
                     : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50'
                 }`}
               >
-                チャット
+                <MessageSquareText size={18} className="sm:hidden" />
+                <span className="hidden sm:inline">チャット</span>
               </Link>
               <RoomSettingsNavLink />
             </nav>
@@ -66,7 +69,8 @@ export function AppHeader({ currentPath }: AppHeaderProps) {
                 type="submit"
                 className="shrink-0 pt-0.5 text-sm text-zinc-500 transition-colors hover:text-zinc-900 sm:pt-0 dark:text-zinc-400 dark:hover:text-zinc-50"
               >
-                ログアウト
+                <LogOut size={18} className="sm:hidden" />
+                <span className="hidden sm:inline">ログアウト</span>
               </button>
             </form>
           </div>

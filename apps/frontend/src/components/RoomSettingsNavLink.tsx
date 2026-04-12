@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Cog } from 'lucide-react';
 import { useMode } from '../contexts/ModeContext';
 
 export function RoomSettingsNavLink() {
@@ -22,7 +23,8 @@ export function RoomSettingsNavLink() {
           : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50'
       }`}
     >
-      ルーム設定
+      <Cog size={18} className="sm:hidden" />
+      <span className="hidden sm:inline">ルーム設定</span>
     </Link>
   );
 }
