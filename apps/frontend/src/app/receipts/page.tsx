@@ -54,7 +54,7 @@ export default async function ReceiptsPage() {
         .catch(() => [] as ListReceiptItem[]));
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black">
+    <div className="min-h-dvh bg-zinc-50 dark:bg-black">
       <AppHeader currentPath="/receipts" />
 
       <main className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">

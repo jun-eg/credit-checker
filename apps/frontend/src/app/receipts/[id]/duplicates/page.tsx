@@ -40,7 +40,7 @@ export default async function DuplicateCheckPage({
   ]);
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black">
+    <div className="min-h-dvh bg-zinc-50 dark:bg-black">
       <AppHeader currentPath="/receipts" />
 
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-10">

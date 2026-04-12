@@ -49,7 +49,7 @@ export default async function DashboardPage() {
     const roomYearly = roomYearlySummary.status === 'fulfilled' ? roomYearlySummary.value : null;
 
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-black">
+      <div className="min-h-dvh bg-zinc-50 dark:bg-black">
         <AppHeader currentPath="/dashboard" />
 
         <main className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
@@ -142,7 +142,7 @@ export default async function DashboardPage() {
   const yearly = yearlySummary.status === 'fulfilled' ? yearlySummary.value : null;
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black">
+    <div className="min-h-dvh bg-zinc-50 dark:bg-black">
       <AppHeader currentPath="/dashboard" />
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
