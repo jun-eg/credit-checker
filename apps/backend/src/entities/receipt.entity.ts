@@ -61,6 +61,9 @@ export class Receipt {
   @Column({ name: 'room_id', nullable: true })
   roomId: string | null;
 
+  @Column({ name: 'deleted_at', type: 'timestamptz', nullable: true })
+  deletedAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

@@ -163,6 +163,58 @@ export class ReceiptsController {
     await this.receiptsService.deleteReceipt(id, user.id);
   }
 
+  @Get('trash')
+  async getTrashReceipts(
+    @CurrentUser() user: User,
+  ): Promise<ListReceiptsResponseDto> {
+    const receipts = await this.receiptsService.getTrashReceipts(user.id);
+    return {
+      items: receipts.map((r) => ({
+        id: r.id,
+        status: r.status,
+        originalFileName: r.originalFileName,
+        storeName: r.storeName,
+        purchasedAt: r.purchasedAt,
+        total: r.total,
+        currency: r.currency,
+        possibleDuplicateIds: r.possibleDuplicateIds ?? null,
+        categories: [],
+        createdAt: r.createdAt,
+        deletedAt: r.deletedAt,
+      })),
+    };
+  }
+
+  @Patch(':id/restore')
+  async restoreReceipt(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<GetReceiptResponseDto> {
+    const receipt = await this.receiptsService.restoreReceipt(id, user.id);
+    return {
+      id: receipt.id,
+      status: receipt.status,
+      originalFileName: receipt.originalFileName,
+      storeName: receipt.storeName,
+      purchasedAt: receipt.purchasedAt,
+      total: receipt.total,
+      currency: receipt.currency,
+      items: [],
+      possibleDuplicateIds: receipt.possibleDuplicateIds ?? null,
+      createdAt: receipt.createdAt,
+      updatedAt: receipt.updatedAt,
+    };
+  }
+
+  @Delete(':id/permanent')
+  @HttpCode(204)
+  async permanentDeleteReceipt(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    await this.receiptsService.permanentDeleteReceipt(id, user.id);
+  }
+
   @Get(':id/image-url')
   async getReceiptImagePresignedUrl(
     @CurrentUser() user: User,

@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, LessThan, Not, Repository } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
 import { Receipt, ReceiptStatus } from '../entities/receipt.entity';
@@ -14,6 +15,9 @@ interface UploadReceiptParams {
   file: Express.Multer.File;
   roomId?: string;
 }
+
+/** ゴミ箱内レシートの自動削除までの日数 */
+const TRASH_RETENTION_DAYS = 30;
 
 @Injectable()
 export class ReceiptsService {
@@ -145,7 +149,7 @@ export class ReceiptsService {
 
   async getReceipt(receiptId: string, userId: string): Promise<Receipt> {
     const receipt = await this.receiptsRepository.findOne({
-      where: { id: receiptId, userId },
+      where: { id: receiptId, userId, deletedAt: IsNull() },
       relations: ['items'],
     });
     if (!receipt) {
@@ -175,6 +179,7 @@ export class ReceiptsService {
     const receipt = await this.receiptsRepository.findOneBy({
       id: receiptId,
       userId,
+      deletedAt: IsNull(),
     });
     if (!receipt) {
       throw new NotFoundException(`レシートが見つかりません: ${receiptId}`);
@@ -241,15 +246,75 @@ export class ReceiptsService {
     }) as Promise<Receipt>;
   }
 
+  /** ソフトデリート: deleted_at を設定する */
   async deleteReceipt(receiptId: string, userId: string): Promise<void> {
     const receipt = await this.receiptsRepository.findOneBy({
       id: receiptId,
       userId,
+      deletedAt: IsNull(),
     });
     if (!receipt) {
       throw new NotFoundException(`レシートが見つかりません: ${receiptId}`);
     }
+    receipt.deletedAt = new Date();
+    await this.receiptsRepository.save(receipt);
+  }
+
+  /** ゴミ箱内レシート一覧 */
+  async getTrashReceipts(userId: string): Promise<Receipt[]> {
+    return this.receiptsRepository.find({
+      where: { userId, deletedAt: Not(IsNull()) },
+      order: { deletedAt: 'DESC' },
+    });
+  }
+
+  /** ゴミ箱から復元し、重複チェックを実行 */
+  async restoreReceipt(receiptId: string, userId: string): Promise<Receipt> {
+    const receipt = await this.receiptsRepository.findOneBy({
+      id: receiptId,
+      userId,
+      deletedAt: Not(IsNull()),
+    });
+    if (!receipt) {
+      throw new NotFoundException(`ゴミ箱内にレシートが見つかりません: ${receiptId}`);
+    }
+    receipt.deletedAt = null;
+    await this.receiptsRepository.save(receipt);
+
+    if (receipt.status === ReceiptStatus.COMPLETED) {
+      await this.detectDuplicates(receipt);
+    }
+
+    return receipt;
+  }
+
+  /** 完全削除（物理削除） */
+  async permanentDeleteReceipt(receiptId: string, userId: string): Promise<void> {
+    const receipt = await this.receiptsRepository.findOneBy({
+      id: receiptId,
+      userId,
+      deletedAt: Not(IsNull()),
+    });
+    if (!receipt) {
+      throw new NotFoundException(`ゴミ箱内にレシートが見つかりません: ${receiptId}`);
+    }
     await this.receiptsRepository.remove(receipt);
+  }
+
+  /** 30日経過したゴミ箱内レシートを自動削除 */
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async cleanupTrash(): Promise<void> {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - TRASH_RETENTION_DAYS);
+
+    const expired = await this.receiptsRepository.find({
+      where: { deletedAt: LessThan(cutoff) },
+    });
+
+    if (expired.length > 0) {
+      await this.receiptsRepository.remove(expired);
+      this.logger.log(`ゴミ箱自動削除: ${expired.length}件のレシートを完全削除しました`);
+    }
   }
 
   private async detectDuplicates(receipt: Receipt): Promise<void> {
@@ -261,7 +326,8 @@ export class ReceiptsService {
       .select('r.id', 'id')
       .where('r.user_id = :userId', { userId: receipt.userId })
       .andWhere('r.id != :id', { id: receipt.id })
-      .andWhere('r.status = :status', { status: ReceiptStatus.COMPLETED });
+      .andWhere('r.status = :status', { status: ReceiptStatus.COMPLETED })
+      .andWhere('r.deleted_at IS NULL');
 
     if (receipt.purchasedAt) {
       qb.andWhere('DATE(r.purchased_at) = DATE(:purchasedAt)', {
@@ -324,6 +390,7 @@ export class ReceiptsService {
       .createQueryBuilder('receipt')
       .leftJoinAndSelect('receipt.items', 'item')
       .where('receipt.user_id = :userId', { userId })
+      .andWhere('receipt.deleted_at IS NULL')
       .orderBy('receipt.created_at', 'DESC');
 
     if (roomId) {
@@ -356,9 +423,10 @@ export class ReceiptsService {
       total: string;
     };
 
-    const applyRoomFilter = <T extends object>(
+    const applyFilters = <T extends object>(
       qb: import('typeorm').SelectQueryBuilder<T>,
     ) => {
+      qb.andWhere('receipt.deleted_at IS NULL');
       if (roomId) {
         qb.andWhere('receipt.room_id = :roomId', { roomId });
       }
@@ -367,7 +435,7 @@ export class ReceiptsService {
 
     const [totalResult, byCategory, byMonth, byMonthCategory] =
       await Promise.all([
-        applyRoomFilter(
+        applyFilters(
           this.receiptsRepository
             .createQueryBuilder('receipt')
             .select('COALESCE(SUM(receipt.total), 0)', 'total')
@@ -381,7 +449,7 @@ export class ReceiptsService {
             ),
         ).getRawOne<RawTotal>(),
 
-        applyRoomFilter(
+        applyFilters(
           this.receiptItemsRepository
             .createQueryBuilder('item')
             .innerJoin('item.receipt', 'receipt')
@@ -399,7 +467,7 @@ export class ReceiptsService {
             .orderBy('total', 'DESC'),
         ).getRawMany<RawCategoryTotal>(),
 
-        applyRoomFilter(
+        applyFilters(
           this.receiptsRepository
             .createQueryBuilder('receipt')
             .select('EXTRACT(MONTH FROM receipt.purchased_at)', 'month')
@@ -416,7 +484,7 @@ export class ReceiptsService {
             .orderBy('month', 'ASC'),
         ).getRawMany<RawMonthTotal>(),
 
-        applyRoomFilter(
+        applyFilters(
           this.receiptItemsRepository
             .createQueryBuilder('item')
             .innerJoin('item.receipt', 'receipt')
@@ -490,7 +558,8 @@ export class ReceiptsService {
       .andWhere(
         'receipt.purchased_at >= :from AND receipt.purchased_at < :to',
         { from, to },
-      );
+      )
+      .andWhere('receipt.deleted_at IS NULL');
 
     const categoryQb = this.receiptItemsRepository
       .createQueryBuilder('item')
@@ -505,6 +574,7 @@ export class ReceiptsService {
         'receipt.purchased_at >= :from AND receipt.purchased_at < :to',
         { from, to },
       )
+      .andWhere('receipt.deleted_at IS NULL')
       .groupBy('item.category')
       .orderBy('total', 'DESC');
 
