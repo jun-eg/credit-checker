@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { SessionSidebar } from './SessionSidebar';
 import { MessageThread } from './MessageThread';
+import { NewChatThread } from './NewChatThread';
 
 interface ChatContainerProps {
   backendToken: string;
@@ -40,11 +41,10 @@ export function ChatContainer({ backendToken, sessionId }: ChatContainerProps) {
           onMessageSent={handleMessageSent}
         />
       ) : (
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">
-            サイドバーからチャットを選択するか、新規チャットを開始してください
-          </p>
-        </div>
+        <NewChatThread
+          backendToken={backendToken}
+          onMessageSent={handleMessageSent}
+        />
       )}
     </>
   );
