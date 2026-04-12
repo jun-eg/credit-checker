@@ -6,7 +6,7 @@ import { AppHeader } from '../../components/AppHeader';
 import { CategoryBarChart } from '../../components/CategoryBarChart';
 import { MonthlyBarChart } from '../../components/MonthlyBarChart';
 import { getMonthlySummary, getYearlySummary } from '../../lib/api/receipts';
-import { ReceiptUploadCard } from './_components/ReceiptUploadCard';
+
 
 function formatAmount(amount: number, currency: string): string {
   return new Intl.NumberFormat('ja-JP', {
@@ -127,7 +127,6 @@ export default async function DashboardPage() {
             )}
           </div>
 
-          <ReceiptUploadCard backendToken={session.backendToken} currentRoom={currentRoom} />
         </main>
       </div>
     );
