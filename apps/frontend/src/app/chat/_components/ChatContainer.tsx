@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { SessionSidebar } from './SessionSidebar';
 import { MessageThread } from './MessageThread';
 
@@ -11,13 +11,9 @@ interface ChatContainerProps {
 
 export function ChatContainer({ backendToken, sessionId }: ChatContainerProps) {
   const refreshSessionsRef = useRef<(() => void) | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  // sm未満ではデフォルトで閉じる
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 640px)');
-    setSidebarOpen(mq.matches);
-  }, []);
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches,
+  );
 
   const handleSessionsRefresh = (refresh: () => void) => {
     refreshSessionsRef.current = refresh;
