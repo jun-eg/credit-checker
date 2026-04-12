@@ -86,6 +86,22 @@ export async function leaveRoom(id: string, token: string): Promise<void> {
   }
 }
 
+export async function removeMember(
+  roomId: string,
+  memberId: string,
+  token: string,
+): Promise<void> {
+  const res = await fetch(`${backendUrl}/rooms/${roomId}/members/${memberId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`メンバーの除外に失敗しました (${res.status}): ${text}`);
+  }
+}
+
 export async function deleteRoom(id: string, token: string): Promise<void> {
   const res = await fetch(`${backendUrl}/rooms/${id}`, {
     method: 'DELETE',
