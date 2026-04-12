@@ -13,8 +13,5 @@
   },
   "devDependencies": {
     "prettier": "^3.5.3"
-  },
-  "dependencies": {
-    "@nestjs/schedule": "^6.1.1"
   }
 }
