@@ -1,13 +1,13 @@
 import { auth } from './auth';
 import { NextResponse } from 'next/server';
 
-const PUBLIC_PATHS = ['/', '/select'];
+const PUBLIC_PATHS = ['/', '/select', '/rooms/join'];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
-  // 未認証: ログインページ以外はトップへ
-  if (!req.auth && pathname !== '/') {
+  // 未認証: パブリックパス以外はトップへ
+  if (!req.auth && !PUBLIC_PATHS.includes(pathname)) {
     return NextResponse.redirect(new URL('/', req.url));
   }
 
