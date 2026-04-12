@@ -75,12 +75,17 @@ export default async function RoomDetailPage({ params }: RoomDetailPageProps) {
           </div>
 
           {/* 招待コード（オーナーのみ） */}
-          {isOwner && room.inviteCode && (
+          {isOwner && room.inviteCode && room.inviteCodeExpiresAt && (
             <div className="border-b border-zinc-100 px-4 py-4 sm:px-8 dark:border-zinc-800">
               <h2 className="mb-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">
                 招待コード
               </h2>
-              <InviteCodeDisplay inviteCode={room.inviteCode} />
+              <InviteCodeDisplay
+                inviteCode={room.inviteCode}
+                inviteCodeExpiresAt={room.inviteCodeExpiresAt}
+                roomId={room.id}
+                backendToken={session.backendToken}
+              />
             </div>
           )}
 

@@ -24,6 +24,7 @@ export interface RoomDetail {
   name: string;
   ownerId: string;
   inviteCode: string | null;
+  inviteCodeExpiresAt: string | null;
   members: RoomMember[];
   createdAt: string;
 }

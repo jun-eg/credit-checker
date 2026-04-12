@@ -88,9 +88,9 @@ export class RoomsController {
   async regenerateInviteCode(
     @CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<{ inviteCode: string }> {
+  ): Promise<{ inviteCode: string; inviteCodeExpiresAt: Date }> {
     const room = await this.roomsService.regenerateInviteCode(id, user.id);
-    return { inviteCode: room.inviteCode };
+    return { inviteCode: room.inviteCode, inviteCodeExpiresAt: room.inviteCodeExpiresAt };
   }
 
   @Post(':id/invitations')
@@ -145,6 +145,7 @@ export class RoomsController {
       ownerId: room.ownerId,
       // 招待コードはオーナーにのみ開示する
       inviteCode: isOwner ? room.inviteCode : null,
+      inviteCodeExpiresAt: isOwner ? room.inviteCodeExpiresAt : null,
       members: room.members.map((m) => ({
         id: m.id,
         userId: m.userId,

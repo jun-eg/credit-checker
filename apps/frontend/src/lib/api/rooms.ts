@@ -115,6 +115,23 @@ export async function listRoomReceipts(
   return data.items;
 }
 
+export async function regenerateInviteCode(
+  roomId: string,
+  token: string,
+): Promise<{ inviteCode: string; inviteCodeExpiresAt: string }> {
+  const res = await fetch(`${backendUrl}/rooms/${roomId}/invite-code/regenerate`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`招待コードの再生成に失敗しました (${res.status}): ${text}`);
+  }
+
+  return res.json() as Promise<{ inviteCode: string; inviteCodeExpiresAt: string }>;
+}
+
 export async function issueRoomInvitation(
   roomId: string,
   backendToken: string,

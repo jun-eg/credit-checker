@@ -31,8 +31,9 @@ export class RoomsService {
 
   async createRoom(userId: string, name: string): Promise<Room> {
     const inviteCode = this.generateInviteCode();
+    const inviteCodeExpiresAt = new Date(Date.now() + INVITATION_TTL_MS);
 
-    const room = this.roomsRepository.create({ name, ownerId: userId, inviteCode });
+    const room = this.roomsRepository.create({ name, ownerId: userId, inviteCode, inviteCodeExpiresAt });
     const saved = await this.roomsRepository.save(room);
 
     const member = this.roomMembersRepository.create({
@@ -115,6 +116,10 @@ export class RoomsService {
       throw new NotFoundException('招待コードが無効です');
     }
 
+    if (room.inviteCodeExpiresAt.getTime() <= Date.now()) {
+      throw new GoneException('招待コードの有効期限が切れています');
+    }
+
     const existing = await this.roomMembersRepository.findOne({
       where: { roomId: room.id, userId },
     });
@@ -147,6 +152,7 @@ export class RoomsService {
     }
 
     room.inviteCode = this.generateInviteCode();
+    room.inviteCodeExpiresAt = new Date(Date.now() + INVITATION_TTL_MS);
     return this.roomsRepository.save(room);
   }
 
