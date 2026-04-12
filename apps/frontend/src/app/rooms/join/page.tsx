@@ -14,7 +14,7 @@ export default async function JoinRoomPage({ searchParams }: JoinRoomPageProps) 
   // トークンが欠けているケース
   if (!token) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-black">
+      <div className="min-h-dvh bg-zinc-50 dark:bg-black">
         <AppHeader currentPath="/rooms/join" />
         <main className="mx-auto max-w-md space-y-4 px-4 py-10">
           <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-zinc-900">
@@ -45,7 +45,7 @@ export default async function JoinRoomPage({ searchParams }: JoinRoomPageProps) 
     };
 
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-black">
+      <div className="min-h-dvh bg-zinc-50 dark:bg-black">
         <AppHeader currentPath="/rooms/join" />
         <main className="mx-auto max-w-md space-y-4 px-4 py-10">
           <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-zinc-900">
@@ -70,7 +70,7 @@ export default async function JoinRoomPage({ searchParams }: JoinRoomPageProps) 
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black">
+    <div className="min-h-dvh bg-zinc-50 dark:bg-black">
       <AppHeader currentPath="/rooms/join" />
       <main className="mx-auto max-w-md space-y-4 px-4 py-10">
         <div className="rounded-2xl bg-white p-6 shadow-sm dark:bg-zinc-900">

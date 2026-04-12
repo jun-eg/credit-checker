@@ -17,7 +17,7 @@ export default async function ChatPage({
   const { session: sessionId } = await searchParams;
 
   return (
-    <div className="flex h-screen flex-col bg-zinc-50 dark:bg-black">
+    <div className="flex h-dvh flex-col bg-zinc-50 dark:bg-black">
       <AppHeader currentPath="/chat" />
 
       <main className="flex flex-1 overflow-hidden">
