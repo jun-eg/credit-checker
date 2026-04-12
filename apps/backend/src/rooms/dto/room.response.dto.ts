@@ -13,6 +13,7 @@ export class RoomDetailResponseDto {
   name: string;
   ownerId: string;
   inviteCode: string | null;
+  inviteCodeExpiresAt: Date | null;
   members: RoomMemberResponseDto[];
   createdAt: Date;
 }

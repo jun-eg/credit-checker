@@ -25,6 +25,9 @@ export class Room {
   @Column({ name: 'invite_code', type: 'varchar', unique: true })
   inviteCode: string;
 
+  @Column({ name: 'invite_code_expires_at', type: 'timestamptz' })
+  inviteCodeExpiresAt: Date;
+
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'owner_id' })
   owner: User;
