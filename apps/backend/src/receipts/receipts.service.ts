@@ -81,6 +81,7 @@ export class ReceiptsService {
     buffer: Buffer,
   ): Promise<{ buffer: Buffer; mimeType: 'image/webp' }> {
     const converted = await sharp(buffer)
+      .rotate()
       .resize(1600, 1600, {
         fit: 'inside',            // 縦横比を保持・見切れなし
         withoutEnlargement: true, // 元画像より大きくしない
