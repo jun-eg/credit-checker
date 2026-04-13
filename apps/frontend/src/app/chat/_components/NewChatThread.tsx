@@ -106,7 +106,7 @@ export function NewChatThread({ backendToken, onMessageSent }: NewChatThreadProp
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={isSending}
-          placeholder="メッセージを入力（Enter で送信、Shift+Enter で改行）"
+          placeholder="メッセージを入力..."
           rows={1}
           className="flex-1 resize-none rounded-xl border border-zinc-300 bg-transparent px-4 py-2 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-50 dark:placeholder-zinc-600 dark:focus:border-zinc-500"
         />
