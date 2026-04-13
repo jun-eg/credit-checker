@@ -1,93 +1,111 @@
-name: Deploy to EC2
+name: Deploy
 
 on:
   push:
-    branches:
-      - main
+    branches: [develop, main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'デプロイ先環境'
+        required: true
+        type: choice
+        options: [dev, prod]
+      deploy_target:
+        description: 'デプロイ対象'
+        required: true
+        type: choice
+        options: [all, infra, apps]
+        default: all
 
-env:
-  AWS_REGION: ${{ vars.AWS_REGION }}
-  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
+# reusable workflow が OIDC (id-token: write) を使うため、呼び出し側でも明示が必要
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
-  build-and-push:
+  # 変更箇所の検知
+  detect-changes:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
     outputs:
-      image_tag: ${{ steps.meta.outputs.tag }}
+      infra: ${{ steps.result.outputs.infra }}
+      apps:  ${{ steps.result.outputs.apps }}
+      env:   ${{ steps.result.outputs.env }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+      # push イベント時のみパスフィルターで変更検知
+      - uses: dorny/paths-filter@v3
+        id: filter
+        if: github.event_name == 'push'
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-role
-          aws-region: ${{ env.AWS_REGION }}
+          filters: |
+            infra:
+              - 'infra/**'
+            apps:
+              - 'apps/**'
 
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Set image tag
-        id: meta
-        run: echo "tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: frontend/Dockerfile
-          push: true
-          tags: |
-            ${{ env.ECR_REGISTRY }}/credit-checker-frontend:${{ steps.meta.outputs.tag }}
-            ${{ env.ECR_REGISTRY }}/credit-checker-frontend:latest
-
-      - name: Build and push backend image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: backend/Dockerfile
-          push: true
-          tags: |
-            ${{ env.ECR_REGISTRY }}/credit-checker-backend:${{ steps.meta.outputs.tag }}
-            ${{ env.ECR_REGISTRY }}/credit-checker-backend:latest
-
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-deploy-role
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Deploy to EC2 via SSM
+      - name: Set outputs
+        id: result
         run: |
-          aws ssm send-command \
-            --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
-            --document-name "AWS-RunShellScript" \
-            --parameters 'commands=[
-              "export ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com",
-              "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
-              "aws ecr get-login-password --region ${{ vars.AWS_REGION }} | docker login --username AWS --password-stdin $ECR_REGISTRY",
-              "sudo yum install -y git || true",
-              "cd /home/ec2-user/credit-checker",
-              "git pull origin main",
-              "sudo systemctl stop nginx 2>/dev/null || true",
-              "sudo systemctl disable nginx 2>/dev/null || true",
-              "docker compose -f docker-compose.prod.yml pull",
-              "docker compose -f docker-compose.prod.yml up -d",
-              "docker image prune -f"
-            ]' \
-            --region "${{ vars.AWS_REGION }}" \
-            --output text \
-            --query "Command.CommandId" | xargs -I {} \
-            aws ssm wait command-executed \
-              --command-id {} \
-              --instance-id "${{ secrets.EC2_INSTANCE_ID }}" \
-              --region "${{ vars.AWS_REGION }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TARGET="${{ inputs.deploy_target }}"
+            echo "infra=$( [ "$TARGET" = "all" ] || [ "$TARGET" = "infra" ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
+            echo "apps=$( [ "$TARGET" = "all" ] || [ "$TARGET" = "apps" ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
+            echo "env=${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "infra=${{ steps.filter.outputs.infra }}" >> "$GITHUB_OUTPUT"
+            echo "apps=${{ steps.filter.outputs.apps }}" >> "$GITHUB_OUTPUT"
+            if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              echo "env=prod" >> "$GITHUB_OUTPUT"
+            else
+              echo "env=dev" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+  # インフラデプロイ - dev（infra/ に変更がある場合のみ）
+  deploy-infra-dev:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.infra == 'true' && needs.detect-changes.outputs.env == 'dev'
+    uses: ./.github/workflows/reusable-infra-deploy.yml
+    with:
+      environment: dev
+    secrets:
+      aws_account_id: ${{ secrets.DEV_AWS_ACCOUNT_ID }}
+
+  # インフラデプロイ - prod（infra/ に変更がある場合のみ）
+  deploy-infra-prod:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.infra == 'true' && needs.detect-changes.outputs.env == 'prod'
+    uses: ./.github/workflows/reusable-infra-deploy.yml
+    with:
+      environment: prod
+    secrets:
+      aws_account_id: ${{ secrets.PROD_AWS_ACCOUNT_ID }}
+
+  # アプリデプロイ - dev（apps/ に変更がある場合のみ、infra デプロイの後に実行）
+  deploy-app-dev:
+    needs: [detect-changes, deploy-infra-dev]
+    if: |
+      always() &&
+      needs.detect-changes.outputs.apps == 'true' &&
+      needs.detect-changes.outputs.env == 'dev' &&
+      (needs.deploy-infra-dev.result == 'success' || needs.deploy-infra-dev.result == 'skipped')
+    uses: ./.github/workflows/reusable-app-deploy.yml
+    with:
+      environment: dev
+    secrets:
+      aws_account_id: ${{ secrets.DEV_AWS_ACCOUNT_ID }}
+
+  # アプリデプロイ - prod（apps/ に変更がある場合のみ、infra デプロイの後に実行）
+  deploy-app-prod:
+    needs: [detect-changes, deploy-infra-prod]
+    if: |
+      always() &&
+      needs.detect-changes.outputs.apps == 'true' &&
+      needs.detect-changes.outputs.env == 'prod' &&
+      (needs.deploy-infra-prod.result == 'success' || needs.deploy-infra-prod.result == 'skipped')
+    uses: ./.github/workflows/reusable-app-deploy.yml
+    with:
+      environment: prod
+    secrets:
+      aws_account_id: ${{ secrets.PROD_AWS_ACCOUNT_ID }}

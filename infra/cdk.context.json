@@ -1,0 +1,25 @@
+{
+  "availability-zones:account=213424233010:region=ap-northeast-1": [
+    "ap-northeast-1a",
+    "ap-northeast-1c",
+    "ap-northeast-1d"
+  ],
+  "availability-zones:account=502140064658:region=ap-northeast-1": [
+    "ap-northeast-1a",
+    "ap-northeast-1c",
+    "ap-northeast-1d"
+  ],
+  "availability-zones:account=882856016971:region=ap-northeast-1": [
+    "ap-northeast-1a",
+    "ap-northeast-1c",
+    "ap-northeast-1d"
+  ],
+  "hosted-zone:account=502140064658:domainName=jun-eg.site:region=ap-northeast-1": {
+    "Id": "/hostedzone/Z092401816IOTG2WKLJSF",
+    "Name": "jun-eg.site."
+  },
+  "hosted-zone:account=502140064658:domainName=jun-eg.site:region=us-east-1": {
+    "Id": "/hostedzone/Z092401816IOTG2WKLJSF",
+    "Name": "jun-eg.site."
+  }
+}

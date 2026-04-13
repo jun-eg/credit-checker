@@ -1,0 +1,218 @@
+name: Reusable - App Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+    secrets:
+      aws_account_id:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.aws_account_id }}:role/github-actions-deploy-role
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag
+        id: meta
+        run: echo "tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-frontend:${{ steps.meta.outputs.tag }}
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          target: runner
+          push: true
+          tags: |
+            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-backend:${{ steps.meta.outputs.tag }}
+
+      - name: Build and push backend-migrator
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          target: migrator
+          push: true
+          tags: |
+            ${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.APP_NAME }}-backend-migrator:${{ steps.meta.outputs.tag }}
+
+      - name: Register task definitions with SHA tag
+        id: register_tasks
+        run: |
+          ECR_BASE="${{ secrets.aws_account_id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com"
+          SHA="${{ steps.meta.outputs.tag }}"
+          APP="${{ vars.APP_NAME }}"
+          ENV="${{ inputs.environment }}"
+
+          register_task_def() {
+            local FAMILY="$1"
+            local IMAGE_URI="$2"
+
+            # CDK管理のタスク定義（環境変数・シークレット設定）を取得し、imageだけSHAタグに差し替える
+            TASK_DEF=$(aws ecs describe-task-definition \
+              --task-definition "${FAMILY}" \
+              --query 'taskDefinition' \
+              --output json | jq 'del(
+                .taskDefinitionArn,
+                .revision,
+                .status,
+                .requiresAttributes,
+                .placementConstraints,
+                .compatibilities,
+                .registeredAt,
+                .registeredBy
+              )')
+
+            NEW_DEF=$(echo "$TASK_DEF" | jq \
+              --arg IMAGE "$IMAGE_URI" \
+              '.containerDefinitions[0].image = $IMAGE')
+
+            aws ecs register-task-definition \
+              --cli-input-json "$NEW_DEF" \
+              --query 'taskDefinition.taskDefinitionArn' \
+              --output text
+          }
+
+          FRONTEND_ARN=$(register_task_def "${APP}-frontend-${ENV}" "${ECR_BASE}/${APP}-frontend:${SHA}")
+          BACKEND_ARN=$(register_task_def  "${APP}-backend-${ENV}"  "${ECR_BASE}/${APP}-backend:${SHA}")
+          MIGRATOR_ARN=$(register_task_def "${APP}-migrator-${ENV}" "${ECR_BASE}/${APP}-backend-migrator:${SHA}")
+
+          echo "FRONTEND_ARN=${FRONTEND_ARN}" >> "$GITHUB_OUTPUT"
+          echo "BACKEND_ARN=${BACKEND_ARN}"   >> "$GITHUB_OUTPUT"
+          echo "MIGRATOR_ARN=${MIGRATOR_ARN}" >> "$GITHUB_OUTPUT"
+
+      - name: Record deploy metadata
+        run: |
+          echo "IMAGE_TAG=${{ steps.meta.outputs.tag }}" >> deploy-record.txt
+          echo "ENVIRONMENT=${{ inputs.environment }}" >> deploy-record.txt
+          echo "TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> deploy-record.txt
+
+      - name: Run migration task
+        id: migration
+        run: |
+          SUBNET_ID=$(aws ec2 describe-subnets \
+            --filters 'Name=tag:Name,Values=*Public*' \
+            --query 'Subnets[0].SubnetId' --output text)
+          SG_ID=$(aws ec2 describe-security-groups \
+            --filters "Name=tag:Name,Values=${{ vars.APP_NAME }}-FargateSg-${{ inputs.environment }}" \
+            --query 'SecurityGroups[0].GroupId' --output text)
+
+          TASK_ARN=$(aws ecs run-task \
+            --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
+            --task-definition "${{ steps.register_tasks.outputs.MIGRATOR_ARN }}" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[${SUBNET_ID}],securityGroups=[${SG_ID}],assignPublicIp=ENABLED}" \
+            --query 'tasks[0].taskArn' --output text)
+
+          echo "MIGRATION_TASK_ARN=${TASK_ARN}" >> deploy-record.txt
+          aws ecs wait tasks-stopped \
+            --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
+            --tasks "${TASK_ARN}"
+
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster ${{ vars.APP_NAME }}-${{ inputs.environment }} \
+            --tasks "${TASK_ARN}" \
+            --query 'tasks[0].containers[0].exitCode' --output text)
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "Migration failed with exit code ${EXIT_CODE}"
+            exit 1
+          fi
+          echo "MIGRATION_STATUS=success" >> deploy-record.txt
+
+      - name: Update ECS services
+        id: ecs_update
+        run: |
+          APP="${{ vars.APP_NAME }}"
+          ENV="${{ inputs.environment }}"
+
+          # ロールバック用にupdate-service前の現在のタスク定義ARNを保存
+          PREV_FRONTEND_ARN=$(aws ecs describe-services \
+            --cluster "${APP}-${ENV}" \
+            --services "${APP}-frontend-${ENV}" \
+            --query 'services[0].taskDefinition' --output text)
+          PREV_BACKEND_ARN=$(aws ecs describe-services \
+            --cluster "${APP}-${ENV}" \
+            --services "${APP}-backend-${ENV}" \
+            --query 'services[0].taskDefinition' --output text)
+
+          echo "PREV_FRONTEND_ARN=${PREV_FRONTEND_ARN}" >> "$GITHUB_OUTPUT"
+          echo "PREV_BACKEND_ARN=${PREV_BACKEND_ARN}"   >> "$GITHUB_OUTPUT"
+
+          aws ecs update-service \
+            --cluster "${APP}-${ENV}" \
+            --service "${APP}-frontend-${ENV}" \
+            --task-definition "${{ steps.register_tasks.outputs.FRONTEND_ARN }}"
+
+          aws ecs update-service \
+            --cluster "${APP}-${ENV}" \
+            --service "${APP}-backend-${ENV}" \
+            --task-definition "${{ steps.register_tasks.outputs.BACKEND_ARN }}"
+
+      - name: Wait for stable
+        timeout-minutes: 20
+        run: |
+          APP="${{ vars.APP_NAME }}"
+          ENV="${{ inputs.environment }}"
+          CLUSTER="${APP}-${ENV}"
+          SERVICES="${APP}-frontend-${ENV} ${APP}-backend-${ENV}"
+
+          # aws ecs wait は最大10分(40回×15秒)のため、ポーリングループで延長
+          DEADLINE=$((SECONDS + 1200))
+          until [ $SECONDS -ge $DEADLINE ]; do
+            STATUSES=$(aws ecs describe-services \
+              --cluster "$CLUSTER" \
+              --services $SERVICES \
+              --query 'services[*].deployments[?status==`PRIMARY`].rolloutState' \
+              --output text)
+
+            if echo "$STATUSES" | grep -qv "COMPLETED"; then
+              echo "Waiting... statuses: $STATUSES"
+              sleep 15
+            else
+              echo "All services stable."
+              exit 0
+            fi
+          done
+          echo "Timed out waiting for services to stabilize."
+          exit 1
+
+      - name: Rollback on failure
+        if: failure() && steps.ecs_update.outcome == 'success'
+        run: |
+          APP="${{ vars.APP_NAME }}"
+          ENV="${{ inputs.environment }}"
+
+          aws ecs update-service \
+            --cluster "${APP}-${ENV}" \
+            --service "${APP}-frontend-${ENV}" \
+            --task-definition "${{ steps.ecs_update.outputs.PREV_FRONTEND_ARN }}"
+
+          aws ecs update-service \
+            --cluster "${APP}-${ENV}" \
+            --service "${APP}-backend-${ENV}" \
+            --task-definition "${{ steps.ecs_update.outputs.PREV_BACKEND_ARN }}"
