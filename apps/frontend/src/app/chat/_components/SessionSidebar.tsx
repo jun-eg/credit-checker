@@ -160,12 +160,24 @@ export function SessionSidebar({
   return (
     <div className="relative flex shrink-0">
       <aside
-        className={`flex flex-col border-r border-zinc-200 bg-white transition-[width] duration-200 ease-in-out dark:border-zinc-800 dark:bg-zinc-900 ${
-          isOpen ? (menuOpenId ? 'w-80' : 'w-64') : 'w-0'
+        className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-zinc-200 bg-white transition-[width] duration-200 ease-in-out sm:static sm:z-auto dark:border-zinc-800 dark:bg-zinc-900 ${
+          isOpen ? 'w-full sm:w-64' : 'w-0'
         } overflow-hidden`}
       >
-        <div className="flex min-w-64 items-center justify-between border-b border-zinc-200 px-4 py-4 dark:border-zinc-800">
-          <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">チャット履歴</span>
+        <div className="flex min-w-[100vw] items-center justify-between border-b border-zinc-200 px-4 py-4 sm:min-w-64 dark:border-zinc-800">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onToggle}
+              className="flex h-7 w-7 items-center justify-center rounded text-zinc-500 hover:bg-zinc-100 sm:hidden dark:text-zinc-400 dark:hover:bg-zinc-800"
+              aria-label="サイドバーを閉じる"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">チャット履歴</span>
+          </div>
           <button
             onClick={handleNewChat}
             disabled={creating}
@@ -175,7 +187,7 @@ export function SessionSidebar({
           </button>
         </div>
 
-        <div className="min-w-64 flex-1 overflow-y-auto py-2">
+        <div className="min-w-[100vw] flex-1 overflow-y-auto py-2 sm:min-w-64">
           {sidebarState.status === 'loading' && (
             <p className="px-4 py-4 text-xs text-zinc-400 dark:text-zinc-500">読み込み中...</p>
           )}
